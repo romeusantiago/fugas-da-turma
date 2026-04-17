@@ -19,7 +19,18 @@
 ## Assets
 
 - Imagens dos personagens em `/images/` (servidas por `publicDir: 'images'` no Vite)
-- Sem sprites animados — personagens desenhados programaticamente no Canvas
+- Sprites animados em `/game_sprites/` — vídeos MP4 importados via `?url` do Vite
+- Personagens renderizados via `HTMLVideoElement` + `ctx.drawImage()` no Canvas
+- Chroma-key por amostragem de cantos (remove fundo branco/preto automaticamente)
+
+## Deploy
+
+| Plataforma | URL |
+|---|---|
+| GitHub | https://github.com/romeusantiago/fugas-da-turma |
+| Vercel (produção) | https://fugas-da-turma.vercel.app |
+
+Pipeline: `git push origin master` → GitHub → Vercel build automático → produção
 
 ## Persistência
 

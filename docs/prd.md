@@ -31,3 +31,19 @@ Crianças de 4 a 10 anos, com 5 faixas de dificuldade adaptadas por idade.
 - 6 telas: Menu → Idade → Personagem → Antagonista → Fases → Jogo → Resultado
 - Tela de resultado com animação de estrelas e barras de desempenho
 - Design cartoon com Fredoka One, paleta vibrante, tema Turma da Mônica
+
+### Sprites animados (v3 — 2026-04-17)
+- Personagens e antagonistas renderizados via vídeos MP4 animados (HTMLVideoElement no Canvas)
+- Remoção de fundo via chroma-key com amostragem automática dos cantos do frame
+- Vídeos: `Cebolinha Webm.mp4`, `Cascão Webm.mp4`, `Mônica Webm.mp4`, `Capitao Feio Webm.mp4`
+
+### Mecânicas de plataforma (v3 — 2026-04-17)
+- Plataformas funcionam como barreiras: colisão lateral = penalidade
+- Pular em cima = seguro; deslizar por baixo = seguro
+- Hold-to-slide: personagem fica agachado enquanto tecla pressionada
+- Bloqueio de levantada: não sobe enquanto obstáculo suspenso/plataforma overhead
+
+## Deploy
+- GitHub: https://github.com/romeusantiago/fugas-da-turma
+- Vercel (produção): https://fugas-da-turma.vercel.app
+- Pipeline: push GitHub → build automático Vercel → produção

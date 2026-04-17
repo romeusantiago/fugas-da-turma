@@ -81,6 +81,45 @@
 - Controles: texto único, `opacity: 0.28` (quase invisível — hint discreto)
 **Motivo:** Card branco tornava a tela "poluída" — excesso de camadas visuais competindo. Design minimalista com foco no CTA.
 
+## ADR-013 — Sprites animados via HTMLVideoElement no Canvas
+**Data:** 2026-04-17
+**Decisão:** Substituir sprites estáticos (PNG) por vídeos MP4 animados desenhados via `ctx.drawImage(videoElement)`.
+**Motivo:** Personagens com animação de corrida tornam o jogo mais vivo. `HTMLVideoElement` é `CanvasImageSource` nativo — sem bibliotecas extras.
+**Implementação:**
+- `makeSprite()` cria `HTMLVideoElement` (muted, loop, autoplay, playsInline)
+- `isSpriteReady()` verifica `readyState >= 2`
+- Canvas offscreen por personagem (`_offPlayer`, `_offAnt`) para chroma-key
+- Chroma-key por amostragem de cantos do frame — detecta fundo automaticamente (branco ou preto)
+- `HARD=35` (px distância RGB → transparente), `SOFT=80` (fade suave nas bordas)
+**Consequência:** `SpriteConfig` agora tem `isVideo?: boolean`. Cleanup no `useEffect` pausa e libera vídeos ao trocar personagem.
+
+## ADR-014 — Hold-to-slide + bloqueio por overhead
+**Data:** 2026-04-17
+**Decisão:** Slide mantém personagem agachado enquanto tecla estiver pressionada E enquanto obstáculo/plataforma estiver overhead.
+**Implementação:**
+- `slideHoldRef` rastreado via `keydown`/`keyup` e `touchstart`/`touchend`
+- Timer só decrementa quando `slideHoldRef.current === false`
+- Ao expirar o timer, verifica `s.obstacles.some(o => o.suspended && overlap_x)` e `s.platforms.some(overlap_x)` — só levanta se nenhum overhead
+**Motivo:** Jogador liberava a tecla antes do obstáculo passar e o personagem subia levando hit — frustrante para crianças.
+
+## ADR-015 — Plataformas como barreiras com colisão lateral
+**Data:** 2026-04-17
+**Decisão:** Plataformas funcionam como obstáculos — colisão lateral = penalidade; pular em cima ou deslizar por baixo = seguro.
+**Altura ajustada:** `heightAbove` em `[58, 90]` px.
+- Fundo da plataforma = `GROUND_Y - heightAbove + PLATFORM_H` em `[316, 348]`
+- Cabeça do player em pé (y=314) fica abaixo do fundo → não passa = bate
+- Cabeça slidando (y=358) fica acima do fundo → passa livre
+**Colisão lateral:** AABB check no corpo da plataforma. Mesma penalidade de obstáculo (-34HP, invencibilidade, flash).
+
+## ADR-016 — Repositório GitHub + deploy Vercel
+**Data:** 2026-04-17
+**Decisão:** Repositório público `romeusantiago/fugas-da-turma` no GitHub, com deploy automático na Vercel via integração GitHub.
+**Pipeline:** push → GitHub → Vercel build automático → produção.
+**URLs:**
+- GitHub: https://github.com/romeusantiago/fugas-da-turma
+- Vercel: https://fugas-da-turma.vercel.app
+- Project ID: `prj_oRHLVpnGBiIXnZJXZi4FugjsHP2T`
+
 ## ADR-011 — Carrossel MainMenu com requestAnimationFrame
 **Data:** 2026-04-16
 **Decisão:** Carrossel de imagens implementado via `requestAnimationFrame` + estado de offset, não CSS animation.

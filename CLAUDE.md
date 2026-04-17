@@ -44,6 +44,7 @@ src/
     └── ResultScreen.tsx        # Animação de estrelas + barras de desempenho
 
 images/                        # Assets de personagens (servidos por publicDir Vite)
+game_sprites/                  # Vídeos MP4 animados dos personagens
 docs/                          # Documentação do projeto
 ```
 
@@ -74,6 +75,15 @@ Alterar esses valores muda toda a sensação do jogo.
 
 ### specialEffectTimer é aditivo
 Coletar item especial enquanto efeito ativo soma +6s ao timer residual (cap 30s). Não reiniciar do zero.
+
+### Sprites animados via HTMLVideoElement
+`game_sprites/` contém vídeos MP4. `characterSprites.ts` mapeia cada personagem para seu vídeo via `?url` import. O engine cria `HTMLVideoElement` (muted, loop, autoplay) e desenha via `ctx.drawImage()`. Chroma-key remove o fundo automaticamente amostrando os 4 cantos do frame.
+
+### Hold-to-slide + bloqueio overhead
+`slideHoldRef` rastreado por keydown/keyup. Slide fica ativo enquanto tecla pressionada. Timer só decrementa quando solta. Ao expirar, verifica se há obstáculo suspenso ou plataforma overhead antes de levantar.
+
+### Plataformas como barreiras
+`heightAbove` em [58, 90]px garante que player em pé bate (não passa por baixo) mas player slidando passa livre. Colisão lateral aplica mesma penalidade de obstáculo.
 
 ---
 
@@ -106,6 +116,8 @@ Fredoka One para títulos/HUD, Fredoka (weight regular) para textos auxiliares. 
 - **Não alterar `GRAVITY` ou `JUMP_VY` sem testar** — toda a física depende deles.
 - **Não commitar `node_modules/` ou `dist/`** — estão no `.gitignore`.
 - **Não usar `npm install` sem `--ignore-scripts` no Windows** — causa EPERM.
+- **Não alterar thresholds de chroma-key sem testar** — HARD=35, SOFT=80 são valores calibrados.
+- **Não usar `git push` sem os dois refspecs** — sempre `git push origin master` (Vercel auto-deploya do master).
 
 ---
 
@@ -136,23 +148,23 @@ Completar com ≥1 estrela desbloqueia a próxima. Record de score e estrelas nu
 
 ---
 
-## Estado atual (2026-04-16)
+## Estado atual (2026-04-17)
 
-**Funcional localmente.** Sem repositório remoto nem deploy Vercel ainda.
+**Em produção.** GitHub + Vercel integrados com deploy automático.
 
-- Git inicializado — 4 commits locais
-- Para publicar: `gh repo create fugas-da-turma --public --source . --push`
+- GitHub: https://github.com/romeusantiago/fugas-da-turma (branch `master`)
+- Vercel: https://fugas-da-turma.vercel.app (auto-deploy a cada push)
 - TypeScript: 0 erros (`npx tsc --noEmit`)
 - Todas as 50 fases implementadas e testáveis
-- Todas as mecânicas especiais implementadas e com feedback visual
-- Antagonista sempre visível, com catchRate por fase (ADR-009)
-- Redesign UX/UI completo estética HQ/quadrinhos (ADR-010)
-- Carrossel 65 imagens na MainMenu (topo + rodapé do frame principal)
-- `src/index.css` com keyframes globais de animação
-- Confetti na tela de vitória
+- Sprites animados via vídeo MP4 com chroma-key automático
+- Hold-to-slide + bloqueio overhead implementados
+- Plataformas como barreiras com colisão lateral
+- Favicon: Cebolinha e Cascão
+
+**Para deployar:** `git push origin master` — Vercel deploya automaticamente.
 
 **Próximos passos sugeridos:**
-1. Criar repositório GitHub e configurar Vercel
-2. Testar gameplay completo em todas as faixas de dificuldade
+1. Ajuste fino de scale/groundOffset dos personagens nos vídeos
+2. Testar gameplay completo nas 5 faixas de dificuldade
 3. Adicionar tela de créditos / highscore global
 4. Considerar PWA para jogar offline
