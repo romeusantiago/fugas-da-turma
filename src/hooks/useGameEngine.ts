@@ -163,24 +163,25 @@ function drawSprite(
     oc.drawImage(source, 0, 0, w, h)
   }
 
-  // Corner-sample chroma key: detect background color from frame corners, remove matching pixels
+  // Smart chroma-key: only apply if corners are opaque (solid background).
+  // If corners are already transparent (video has native alpha), skip → preserves dark outlines/hair.
   const id = oc.getImageData(0, 0, w, h)
   const d  = id.data
   const ci = (row: number, col: number) => (row * w + col) * 4
-  const bgR = (d[ci(0,0)] + d[ci(0,w-1)] + d[ci(h-1,0)] + d[ci(h-1,w-1)]) / 4
-  const bgG = (d[ci(0,0)+1] + d[ci(0,w-1)+1] + d[ci(h-1,0)+1] + d[ci(h-1,w-1)+1]) / 4
-  const bgB = (d[ci(0,0)+2] + d[ci(0,w-1)+2] + d[ci(h-1,0)+2] + d[ci(h-1,w-1)+2]) / 4
-  const HARD = 35, SOFT = 80
-  for (let i = 0; i < d.length; i += 4) {
-    const dr = d[i] - bgR, dg = d[i+1] - bgG, db = d[i+2] - bgB
-    const dist = Math.sqrt(dr*dr + dg*dg + db*db)
-    if (dist < HARD) {
-      d[i + 3] = 0
-    } else if (dist < SOFT) {
-      d[i + 3] = Math.round(((dist - HARD) / (SOFT - HARD)) * 255)
+  const cornerAlpha = (d[ci(0,0)+3] + d[ci(0,w-1)+3] + d[ci(h-1,0)+3] + d[ci(h-1,w-1)+3]) / 4
+  if (cornerAlpha > 20) {
+    const bgR = (d[ci(0,0)] + d[ci(0,w-1)] + d[ci(h-1,0)] + d[ci(h-1,w-1)]) / 4
+    const bgG = (d[ci(0,0)+1] + d[ci(0,w-1)+1] + d[ci(h-1,0)+1] + d[ci(h-1,w-1)+1]) / 4
+    const bgB = (d[ci(0,0)+2] + d[ci(0,w-1)+2] + d[ci(h-1,0)+2] + d[ci(h-1,w-1)+2]) / 4
+    const HARD = 35, SOFT = 80
+    for (let i = 0; i < d.length; i += 4) {
+      const dr = d[i] - bgR, dg = d[i+1] - bgG, db = d[i+2] - bgB
+      const dist = Math.sqrt(dr*dr + dg*dg + db*db)
+      if (dist < HARD)      { d[i + 3] = 0 }
+      else if (dist < SOFT) { d[i + 3] = Math.round(((dist - HARD) / (SOFT - HARD)) * 255) }
     }
+    oc.putImageData(id, 0, 0)
   }
-  oc.putImageData(id, 0, 0)
   ctx.drawImage(off, dx, dy, w, h)
 }
 
@@ -327,7 +328,8 @@ export function useGameEngine(
   const lastTRef    = useRef(0)
   const jumpPRef    = useRef(false)
   const slidePRef   = useRef(false)
-  const slideHoldRef = useRef(false)
+  const slideHoldRef    = useRef(false)
+  const pendingSlideRef = useRef(false)
   const boostPRef   = useRef(false)
   const endCalledRef = useRef(false)
   const playerImgRef  = useRef<CanvasImageSource | null>(null)
@@ -412,7 +414,9 @@ export function useGameEngine(
   }
 
   function playerCurrentH(s: EngineState) {
-    return s.playerState === 'sliding' ? PLAYER_SLIDE_H : PLAYER_H
+    if (s.playerState === 'sliding') return PLAYER_SLIDE_H
+    if (s.playerState === 'jumping' && slideHoldRef.current) return PLAYER_SLIDE_H
+    return PLAYER_H
   }
 
   function buildStats(s: EngineState): RunStats {
@@ -527,9 +531,12 @@ export function useGameEngine(
       }
     }
 
-    // Jump
+    // Jump (cancels slide immediately if on ground)
     const onGround = (s.playerY + PLAYER_H >= GROUND_Y - 1) || isOnPlatform
-    if (jumpPRef.current && onGround && s.playerState !== 'sliding') {
+    if (jumpPRef.current && onGround) {
+      if (s.playerState === 'sliding') {
+        s.playerState = 'running'; s.slideDuration = 0; s.slideCooldown = 0
+      }
       s.playerVY = s.specialEffect === 'jumpBoost' ? JUMP_VY * 2 : JUMP_VY
       s.playerState = 'jumping'; Audio.jump()
     }
@@ -543,7 +550,14 @@ export function useGameEngine(
     }
     if (s.playerY + PLAYER_H >= GROUND_Y) {
       s.playerY = GROUND_Y - PLAYER_H; s.playerVY = 0
-      if (s.playerState === 'jumping') s.playerState = 'running'
+      if (s.playerState === 'jumping') {
+        if ((slideHoldRef.current || pendingSlideRef.current) && s.slideCooldown <= 0) {
+          s.playerState = 'sliding'; s.slideDuration = SLIDE_DURATION; Audio.slide()
+        } else {
+          s.playerState = 'running'
+        }
+        pendingSlideRef.current = false
+      }
     }
     if (s.playerY < 0) { s.playerY = 0; s.playerVY = 0 }
     if (s.playerState === 'sliding') s.playerY = GROUND_Y - PLAYER_SLIDE_H
@@ -556,7 +570,14 @@ export function useGameEngine(
             pb >= plat.y && pb <= plat.y + 50) {
           s.playerY = plat.y - PLAYER_H
           s.playerVY = 0
-          if (s.playerState === 'jumping') s.playerState = 'running'
+          if (s.playerState === 'jumping') {
+            if ((slideHoldRef.current || pendingSlideRef.current) && s.slideCooldown <= 0) {
+              s.playerState = 'sliding'; s.slideDuration = SLIDE_DURATION; Audio.slide()
+            } else {
+              s.playerState = 'running'
+            }
+            pendingSlideRef.current = false
+          }
           break
         }
       }
@@ -893,8 +914,9 @@ export function useGameEngine(
         drawSprite(ctx, playerImgRef.current!, playerClipRef.current,
           PLAYER_SCREEN_X - (pSW - PLAYER_W) / 2, s.playerY - (pSH - ph) + playerGroundOffRef.current, pSW, pSH, _offPlayer)
       } else {
+        const effectiveState = (s.playerState === 'jumping' && slideHoldRef.current) ? 'sliding' : s.playerState
         drawCharacter(ctx, PLAYER_SCREEN_X, s.playerY, PLAYER_W, playerCurrentH(s),
-          charColors, s.playerState, s.isProtected)
+          charColors, effectiveState, s.isProtected)
       }
     }
 
@@ -1036,7 +1058,12 @@ export function useGameEngine(
       if (e.repeat) return
       const k = e.key.toLowerCase()
       if (k === ' ' || k === 'arrowup' || k === 'w') { e.preventDefault(); jumpPRef.current = true }
-      if (k === 'shift' || k === 'arrowdown' || k === 's') { e.preventDefault(); slidePRef.current = true; slideHoldRef.current = true }
+      if (k === 'shift' || k === 'arrowdown' || k === 's') {
+        e.preventDefault()
+        slidePRef.current = true
+        slideHoldRef.current = true
+        if (stateRef.current.playerState === 'jumping') pendingSlideRef.current = true
+      }
       if (k === 'b') boostPRef.current = true
       if (k === 'escape') stateRef.current.isPaused = !stateRef.current.isPaused
     }
@@ -1045,8 +1072,10 @@ export function useGameEngine(
       if (k === 'shift' || k === 'arrowdown' || k === 's') slideHoldRef.current = false
     }
     const onTouch = (e: TouchEvent) => {
-      if (e.touches.length >= 2) { slidePRef.current = true; slideHoldRef.current = true }
-      else jumpPRef.current = true
+      if (e.touches.length >= 2) {
+        slidePRef.current = true; slideHoldRef.current = true
+        if (stateRef.current.playerState === 'jumping') pendingSlideRef.current = true
+      } else { jumpPRef.current = true }
     }
     const onTouchEnd = (e: TouchEvent) => {
       if (e.touches.length < 2) slideHoldRef.current = false
