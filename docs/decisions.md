@@ -88,10 +88,37 @@
 **Implementação:**
 - `makeSprite()` cria `HTMLVideoElement` (muted, loop, autoplay, playsInline)
 - `isSpriteReady()` verifica `readyState >= 2`
-- Canvas offscreen por personagem (`_offPlayer`, `_offAnt`) para chroma-key
-- Chroma-key por amostragem de cantos do frame — detecta fundo automaticamente (branco ou preto)
-- `HARD=35` (px distância RGB → transparente), `SOFT=80` (fade suave nas bordas)
-**Consequência:** `SpriteConfig` agora tem `isVideo?: boolean`. Cleanup no `useEffect` pausa e libera vídeos ao trocar personagem.
+- Canvas offscreen por personagem (`_offPlayer`, `_offAnt`) para chroma-key por pixel
+- Chroma-key: flood-fill a partir das bordas (fundo preto sólido em todos os vídeos)
+- `HARD=8` (transparente), `SOFT=22` (feather), usando distância euclidiana RGB do preto
+**Consequência:** `SpriteConfig` agora tem `isVideo?: boolean` e `bgColor?: 'black' | 'white'`. Cleanup no `useEffect` pausa e libera vídeos ao trocar personagem.
+
+## ADR-017 — Flood-fill chroma-key para remoção de fundo dos sprites
+**Data:** 2026-04-17
+**Decisão:** Usar flood-fill a partir das bordas do canvas offscreen em vez de chroma-key por pixel simples.
+**Problema anterior:** Chroma-key simples removia TODOS os pixels dentro do threshold — incluindo contornos e cores escuras do personagem (cabelo da Mônica, sombras). Amostragem de cantos era imprecisa (pixels de personagem nos cantos → background detectado errado).
+**Solução:** Flood-fill a partir de todas as bordas (linha superior/inferior + colunas esq/dir) com HARD=8, SOFT=22 (distância euclidiana do preto).
+- Pixels de fundo preto border-connected → transparentes
+- Pixels interiores (mesmo que escuros) → NÃO são border-connected → preservados
+- Contornos externos → removidos (adjacentes ao fundo), contornos internos → preservados
+**Consequência:** Personagens aparecem com cores corretas mesmo tendo cabelos escuros ou detalhes próximos ao preto.
+
+## ADR-018 — Mecânicas de input fluidas (air-crouch, jump-from-slide, slide-buffer)
+**Data:** 2026-04-17
+**Decisão:** Permitir que o jogador aplique qualquer ação imediatamente, cancelando ou bufferizando a ação atual.
+**Implementação:**
+- **Air crouch:** Slide pressionado no ar reduz hitbox (`playerCurrentH` retorna `PLAYER_SLIDE_H`). Visual usa `effectiveState = 'sliding'`.
+- **Jump from slide:** Pulo pressionado durante slide cancela o slide imediatamente e executa o pulo.
+- **Slide buffer (`pendingSlideRef`):** Slide pressionado no ar é armazenado. Ao pousar, executa o slide automaticamente se cooldown permitir.
+**Motivo:** Crianças não podem antecipar obstáculos com precisão — buffering e cancelamentos eliminam frustração de "apertar mas não reagir".
+
+## ADR-019 — Zonas de spawn de itens bimodal (acima e abaixo das plataformas)
+**Data:** 2026-04-17
+**Decisão:** Itens coletáveis spawnam em duas zonas Y que evitam a faixa de colisão das plataformas.
+**Zonas:**
+- Baixa: `GROUND_Y - randBetween(5, 36)` → y 354–385 (abaixo do fundo mínimo das plataformas y=348)
+- Alta: `GROUND_Y - randBetween(100, 195)` → y 195–290 (acima do topo máximo das plataformas y=300)
+**Motivo:** Itens spawning em y 230–320 sobrepunham o corpo das plataformas (y 300–348), causando penalidades incorretas ao player tentar coletá-los.
 
 ## ADR-014 — Hold-to-slide + bloqueio por overhead
 **Data:** 2026-04-17

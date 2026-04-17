@@ -94,3 +94,39 @@ function calcStars(completed, stats, timeLimit, timeRemaining):
 - Chave localStorage: `fugas_da_turma_save_v2`
 - Schema: `{ phases: Record<number, { stars, bestScore, unlocked }> }`
 - Fase 1 sempre unlocked; desbloquear próxima ao completar com ≥1 estrela
+
+## Sprites animados — Chroma-key
+
+| Parâmetro | Valor | Descrição |
+|---|---|---|
+| Algoritmo | Flood-fill a partir das bordas | Remove apenas pixels border-connected |
+| HARD | 8 | Distância euclidiana RGB do preto → alpha=0 |
+| SOFT | 22 | Limite do fill; pixels acima ficam intocados |
+| `_offPlayer` | Canvas offscreen | Processamento pixel do player |
+| `_offAnt` | Canvas offscreen | Processamento pixel do antagonista |
+
+Todos os vídeos têm fundo preto sólido. `bgColor` em `SpriteConfig` é reservado para futura expansão.
+
+## Mecânicas de input
+
+| Mecânica | Implementação |
+|---|---|
+| Air crouch | `slideHoldRef.current` no ar → `playerCurrentH()` retorna `PLAYER_SLIDE_H` |
+| Jump from slide | Pulo durante slide → cancela slide, `playerState = 'jumping'` |
+| Slide buffer | `pendingSlideRef` armazena slide pressionado no ar → executa no pouso |
+| Hold-to-slide | Slide ativo enquanto tecla pressionada (`slideHoldRef`) |
+| Overhead block | Não levanta se obstáculo suspenso ou plataforma overhead |
+
+## Zonas de spawn de itens
+
+| Zona | Fórmula Y | Range Y |
+|---|---|---|
+| Baixa | `GROUND_Y - rand(5,36)` | 354–385 (abaixo plataformas) |
+| Alta | `GROUND_Y - rand(100,195)` | 195–290 (acima plataformas) |
+
+Plataformas ocupam y 300–348 — zona de spawn nunca entra nessa faixa.
+
+## Vercel Analytics
+
+- Pacote: `@vercel/analytics` — adicionado automaticamente pela integração Vercel
+- Importado em `src/App.tsx` como `<Analytics />` no root da aplicação
