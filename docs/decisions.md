@@ -62,13 +62,24 @@
 **Data:** 2026-04-16
 **Decisão:** Redesenhar todas as telas de menu com estética de quadrinhos brasileiros (Turma da Mônica).
 **Elementos:**
-- Bordas `4-5px solid #1a1a1a` em todos os cards
+- Bordas `4-5px solid #1a1a1a` em todos os cards (exceto MainMenu — sem card)
 - Sombras duras `5-8px offset, 0 blur`
 - Hover: `translate(-3~4px) + shadow para 0` (efeito de pressionar)
 - Animações CSS globais em `src/index.css` (bounce-in, slide-up, wiggle, confetti-fall, star-pop, pulse-glow)
 - Confetti de 36 peças animadas na tela de vitória
-- Carrossel infinito de 65 imagens na MainMenu (topo + rodapé do frame principal)
+- Carrossel infinito de 65 imagens na MainMenu (topo + rodapé da TELA, não dentro de card)
 **Motivo:** Identidade visual coerente com a Turma da Mônica; experiência child-friendly com feedback visual rico.
+
+## ADR-012 — MainMenu full-screen dark sem card branco
+**Data:** 2026-04-16
+**Decisão:** MainMenu redesenhada sem card branco central — conteúdo flutua diretamente sobre fundo escuro `#070b14`.
+**Elementos:**
+- Fundo: `#070b14` (quase preto) + spotlight radial vermelho suave
+- Carrosseis com `opacity: 0.45` e fade nas bordas (gradiente L/R) — decoração atmosférica
+- Título dourado `#fbbf24` gigante `clamp(52px,10vw,86px)` com text-shadow bold
+- Botão vermelho `#dc2626` centralizado, sem box container
+- Controles: texto único, `opacity: 0.28` (quase invisível — hint discreto)
+**Motivo:** Card branco tornava a tela "poluída" — excesso de camadas visuais competindo. Design minimalista com foco no CTA.
 
 ## ADR-011 — Carrossel MainMenu com requestAnimationFrame
 **Data:** 2026-04-16

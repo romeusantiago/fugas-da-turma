@@ -38,16 +38,16 @@ Cada tela tem animação `slide-up` na entrada. Botão "← Voltar" em todas as 
 ## Telas — detalhamento visual
 
 ### MainMenu
-- **Fundo:** Gradiente roxo `#1e1b4b → #4c1d95 → #7e22ce → #be185d`
-- **Halftone:** `radial-gradient(#a855f7 1.5px, ...)` com opacity 0.18
-- **Frame principal:** Card branco `560px`, `5px solid #1a1a1a`, `boxShadow 8px 8px 0`
-- **Carrossel (topo do frame):** Fileira 1 — 65 imagens rolando para esquerda (40px/s)
-- **Carrossel (rodapé do frame):** Fileira 2 — 65 imagens invertidas rolando para direita (38px/s)
-- Imagens: 68×68px, `borderRadius: 12px`, `border: 2px solid #e2e8f0`
-- Loop infinito via `requestAnimationFrame` + lista duplicada
-- **Título:** Fredoka One 54px, cor `#be185d`, textShadow bold
-- **Badge estrelas:** Amarelo `#fef08a`, animação `pop-in`
-- **Botão Jogar:** Full-width, `#be185d`, hover lift
+- **Fundo:** Sólido `#070b14` (quase preto) + spotlight `radial-gradient(ellipse 70% 55%, rgba(220,38,38,0.12))`
+- **Sem card branco** — conteúdo flutua diretamente sobre o fundo escuro
+- **Carrossel topo (absoluto):** 65 imagens rolando para esquerda (`speed=36`), `opacity: 0.45`, edge fade L/R
+- **Carrossel rodapé (absoluto):** 65 imagens invertidas rolando para direita (`speed=34`), `opacity: 0.45`, edge fade L/R
+- Imagens carrossel: 60×60px, `borderRadius: 10px`, `border: 2px solid rgba(255,255,255,0.12)`
+- **Ícones animados:** 🏃💨 `fontSize: 52px`, animação `float` contínua
+- **Título:** Fredoka One `clamp(52px,10vw,86px)`, cor `#fbbf24` (dourado), `textShadow: '4px 4px 0 #1a1a1a, 6px 6px 0 rgba(0,0,0,0.4)'`
+- **Badge estrelas:** `rgba(251,191,36,0.15)` + borda `rgba(251,191,36,0.4)`, pill 50px, animação `pop-in`
+- **Botão Jogar:** `padding: 18px 64px`, `#dc2626`, hover `#b91c1c`, sombra dura 6px → 2px ao hover
+- **Controles:** texto único `opacity: 0.28`, Fredoka 13px (hint discreto, sem caixa)
 
 ### AgeSelect
 - **Fundo:** Gradiente âmbar caloroso `#78350f → #b45309 → #fbbf24`
