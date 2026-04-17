@@ -163,11 +163,12 @@ function drawSprite(
     oc.drawImage(source, 0, 0, w, h)
   }
 
-  // Smart chroma-key: only apply if corners are opaque (solid background).
-  // If corners are already transparent (video has native alpha), skip → preserves dark outlines/hair.
+  // Background removal + alpha hardening
   const id = oc.getImageData(0, 0, w, h)
   const d  = id.data
   const ci = (row: number, col: number) => (row * w + col) * 4
+
+  // Step 1: chroma-key only if corners are opaque (solid-color background in video)
   const cornerAlpha = (d[ci(0,0)+3] + d[ci(0,w-1)+3] + d[ci(h-1,0)+3] + d[ci(h-1,w-1)+3]) / 4
   if (cornerAlpha > 20) {
     const bgR = (d[ci(0,0)] + d[ci(0,w-1)] + d[ci(h-1,0)] + d[ci(h-1,w-1)]) / 4
@@ -180,8 +181,15 @@ function drawSprite(
       if (dist < HARD)      { d[i + 3] = 0 }
       else if (dist < SOFT) { d[i + 3] = Math.round(((dist - HARD) / (SOFT - HARD)) * 255) }
     }
-    oc.putImageData(id, 0, 0)
   }
+
+  // Step 2: binary alpha threshold — eliminate semi-transparency from video encoding.
+  // Any pixel with alpha > 30 becomes fully opaque; rest fully transparent.
+  for (let i = 3; i < d.length; i += 4) {
+    d[i] = d[i] > 30 ? 255 : 0
+  }
+
+  oc.putImageData(id, 0, 0)
   ctx.drawImage(off, dx, dy, w, h)
 }
 
