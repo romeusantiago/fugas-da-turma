@@ -166,23 +166,15 @@ function drawSprite(
   const id = oc.getImageData(0, 0, w, h)
   const d  = id.data
 
-  // Dual chroma-key — sem detecção de borda; funciona para fundo preto e branco.
-  // Black key APERTADO (BHARD=8): remove só near-pure-black; contornos cartoon
-  //   (dist≈26 do preto) ficam totalmente opacos.
-  // White key PADRÃO (WHARD=40): remove near-white com tolerância p/ compressão.
-  const BHARD = 8,  BSOFT = 22
-  const WHARD = 40, WSOFT = 90
+  // Black-only chroma-key — vídeos têm fundo preto sólido.
+  // BHARD=12/BSOFT=28: remove preto puro com feather curto.
+  // Branco (olhos, pele clara) fica intocado.
+  const BHARD = 12, BSOFT = 28
   for (let i = 0; i < d.length; i += 4) {
     const r = d[i], g = d[i+1], b = d[i+2]
-
     const bDist = Math.sqrt(r*r + g*g + b*b)
     if (bDist < BHARD) { d[i+3] = 0; continue }
-    if (bDist < BSOFT) { d[i+3] = Math.round((bDist - BHARD) / (BSOFT - BHARD) * 255); continue }
-
-    const wr = r - 255, wg = g - 255, wb = b - 255
-    const wDist = Math.sqrt(wr*wr + wg*wg + wb*wb)
-    if (wDist < WHARD) { d[i+3] = 0; continue }
-    if (wDist < WSOFT) { d[i+3] = Math.round((wDist - WHARD) / (WSOFT - WHARD) * 255) }
+    if (bDist < BSOFT) { d[i+3] = Math.round((bDist - BHARD) / (BSOFT - BHARD) * 255) }
   }
 
   oc.putImageData(id, 0, 0)
