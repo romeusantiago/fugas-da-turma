@@ -135,14 +135,9 @@ function makeSprite(cfg: import('../lib/characterSprites').SpriteConfig): Canvas
   const img = new Image(); img.src = cfg.src; return img
 }
 
-// Offscreen canvas — only needed for quadrant crops
+// Offscreen canvases — one per character slot, reused every frame
 const _offPlayer = document.createElement('canvas')
 const _offAnt    = document.createElement('canvas')
-
-// Multi-pass draw: each pass adds alpha via source-over compositing.
-// For a pixel with 50% video alpha, 7 passes → ~99% apparent opacity.
-// Transparent pixels (background) remain transparent throughout.
-const ALPHA_PASSES = 7
 
 function drawSprite(
   ctx: CanvasRenderingContext2D,
@@ -151,24 +146,72 @@ function drawSprite(
   dx: number, dy: number, dw: number, dh: number,
   off: HTMLCanvasElement,
 ) {
-  if (!quadrant) {
-    for (let i = 0; i < ALPHA_PASSES; i++) ctx.drawImage(source, dx, dy, dw, dh)
-    return
-  }
-
-  // Quadrant crop: draw cropped portion to offscreen canvas, then multi-pass to main
   const w = Math.ceil(dw), h = Math.ceil(dh)
   if (off.width !== w)  off.width  = w
   if (off.height !== h) off.height = h
-  const oc = off.getContext('2d')!
+  const oc = off.getContext('2d', { willReadFrequently: true })!
   oc.clearRect(0, 0, w, h)
-  const srcW = source instanceof HTMLVideoElement ? source.videoWidth  : (source as HTMLImageElement).naturalWidth
-  const srcH = source instanceof HTMLVideoElement ? source.videoHeight : (source as HTMLImageElement).naturalHeight
-  const hw = srcW / 2, hh = srcH / 2
-  const sx = (quadrant === 'topRight' || quadrant === 'bottomRight') ? hw : 0
-  const sy = (quadrant === 'bottomLeft' || quadrant === 'bottomRight') ? hh : 0
-  oc.drawImage(source, sx, sy, hw, hh, 0, 0, w, h)
-  for (let i = 0; i < ALPHA_PASSES; i++) ctx.drawImage(off, dx, dy, dw, dh)
+
+  if (quadrant) {
+    const srcW = source instanceof HTMLVideoElement ? source.videoWidth  : (source as HTMLImageElement).naturalWidth
+    const srcH = source instanceof HTMLVideoElement ? source.videoHeight : (source as HTMLImageElement).naturalHeight
+    const hw = srcW / 2, hh = srcH / 2
+    const sx = (quadrant === 'topRight' || quadrant === 'bottomRight') ? hw : 0
+    const sy = (quadrant === 'bottomLeft' || quadrant === 'bottomRight') ? hh : 0
+    oc.drawImage(source, sx, sy, hw, hh, 0, 0, w, h)
+  } else {
+    oc.drawImage(source, 0, 0, w, h)
+  }
+
+  const id = oc.getImageData(0, 0, w, h)
+  const d  = id.data
+  const px = (r: number, c: number) => (r * w + c) * 4
+
+  // Scan ALL border pixels (top+bottom rows, left+right cols) to detect background.
+  // More robust than corner-only: works even when character limbs reach the edges.
+  let dark = 0, light = 0, total = 0
+  const step = Math.max(1, Math.floor(Math.min(w, h) / 12))
+  for (let x = 0; x < w; x += step) {
+    for (const row of [0, h - 1]) {
+      const i = px(row, x)
+      if (d[i+3] < 10) continue // skip already-transparent
+      const lum = (d[i] + d[i+1] + d[i+2]) / 3
+      if (lum < 60)  dark++
+      if (lum > 195) light++
+      total++
+    }
+  }
+  for (let y = 0; y < h; y += step) {
+    for (const col of [0, w - 1]) {
+      const i = px(y, col)
+      if (d[i+3] < 10) continue
+      const lum = (d[i] + d[i+1] + d[i+2]) / 3
+      if (lum < 60)  dark++
+      if (lum > 195) light++
+      total++
+    }
+  }
+
+  // Need majority (>35%) to confidently identify background
+  const bgIsDark  = total > 0 && dark  / total > 0.35
+  const bgIsLight = total > 0 && light / total > 0.35
+
+  if (bgIsDark || bgIsLight) {
+    const bgR = bgIsDark ? 0 : 255
+    const bgG = bgIsDark ? 0 : 255
+    const bgB = bgIsDark ? 0 : 255
+    // HARD=30: remove near-bg pixels; SOFT=75: smooth transparent→opaque edge
+    const HARD = 30, SOFT = 75
+    for (let i = 0; i < d.length; i += 4) {
+      const dr = d[i] - bgR, dg = d[i+1] - bgG, db = d[i+2] - bgB
+      const dist = Math.sqrt(dr*dr + dg*dg + db*db)
+      if (dist < HARD)      d[i+3] = 0
+      else if (dist < SOFT) d[i+3] = Math.round(((dist - HARD) / (SOFT - HARD)) * 255)
+    }
+  }
+
+  oc.putImageData(id, 0, 0)
+  ctx.drawImage(off, dx, dy, w, h)
 }
 
 function drawRoundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
