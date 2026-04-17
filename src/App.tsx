@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { Analytics } from '@vercel/analytics/react'
 import { MainMenu } from './components/MainMenu'
 import { AgeSelect } from './components/AgeSelect'
 import { CharacterSelect } from './components/CharacterSelect'
@@ -47,43 +48,60 @@ export default function App() {
   const { screen, character, antagonist, result } = state
 
   if (screen === 'menu') {
-    return <MainMenu onStart={() => go({ screen: 'ageSelect' })} />
+    return (
+      <>
+        <MainMenu onStart={() => go({ screen: 'ageSelect' })} />
+        <Analytics />
+      </>
+    )
   }
 
   if (screen === 'ageSelect') {
     return (
-      <AgeSelect
-        onSelect={age => go({ age, screen: 'characterSelect' })}
-        onBack={() => go({ screen: 'menu' })}
-      />
+      <>
+        <AgeSelect
+          onSelect={age => go({ age, screen: 'characterSelect' })}
+          onBack={() => go({ screen: 'menu' })}
+        />
+        <Analytics />
+      </>
     )
   }
 
   if (screen === 'characterSelect') {
     return (
-      <CharacterSelect
-        onSelect={(ch: Character) => go({ character: ch, screen: 'antagonistSelect' })}
-        onBack={() => go({ screen: 'ageSelect' })}
-      />
+      <>
+        <CharacterSelect
+          onSelect={(ch: Character) => go({ character: ch, screen: 'antagonistSelect' })}
+          onBack={() => go({ screen: 'ageSelect' })}
+        />
+        <Analytics />
+      </>
     )
   }
 
   if (screen === 'antagonistSelect') {
     return (
-      <AntagonistSelect
-        character={character}
-        onSelect={(ant: Antagonist) => go({ antagonist: ant, screen: 'phaseSelect' })}
-        onBack={() => go({ screen: 'characterSelect' })}
-      />
+      <>
+        <AntagonistSelect
+          character={character}
+          onSelect={(ant: Antagonist) => go({ antagonist: ant, screen: 'phaseSelect' })}
+          onBack={() => go({ screen: 'characterSelect' })}
+        />
+        <Analytics />
+      </>
     )
   }
 
   if (screen === 'phaseSelect') {
     return (
-      <PhaseSelect
-        onSelect={phaseId => go({ phaseId, screen: 'game' })}
-        onBack={() => go({ screen: 'antagonistSelect' })}
-      />
+      <>
+        <PhaseSelect
+          onSelect={phaseId => go({ phaseId, screen: 'game' })}
+          onBack={() => go({ screen: 'antagonistSelect' })}
+        />
+        <Analytics />
+      </>
     )
   }
 
@@ -113,19 +131,23 @@ export default function App() {
           config={getPhaseConfig()}
           onGameEnd={handleGameEnd}
         />
+        <Analytics />
       </div>
     )
   }
 
   if (screen === 'result' && result) {
     return (
-      <ResultScreen
-        result={result}
-        onPlayAgain={() => go({ screen: 'game' })}
-        onMenu={() => go({ screen: 'menu' })}
-        onNextPhase={() => go({ phaseId: Math.min(state.phaseId + 1, 50), screen: 'game' })}
-        hasNextPhase={hasNextPhase()}
-      />
+      <>
+        <ResultScreen
+          result={result}
+          onPlayAgain={() => go({ screen: 'game' })}
+          onMenu={() => go({ screen: 'menu' })}
+          onNextPhase={() => go({ phaseId: Math.min(state.phaseId + 1, 50), screen: 'game' })}
+          hasNextPhase={hasNextPhase()}
+        />
+        <Analytics />
+      </>
     )
   }
 
