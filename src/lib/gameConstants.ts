@@ -14,7 +14,7 @@ export const PLAYER_SCREEN_X = 140
 // ── Antagonist ─────────────────────────────────────────────────────────────
 export const ANT_W = 60
 export const ANT_H = 82
-export const ANT_INITIAL_GAP = 220
+export const ANT_INITIAL_GAP = 140
 
 // ── Physics ────────────────────────────────────────────────────────────────
 export const GRAVITY = 650

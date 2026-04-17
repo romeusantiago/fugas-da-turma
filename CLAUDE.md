@@ -140,11 +140,16 @@ Completar com ≥1 estrela desbloqueia a próxima. Record de score e estrelas nu
 
 **Funcional localmente.** Sem repositório remoto nem deploy Vercel ainda.
 
-- `git init` já realizado — primeiro commit: `69ca71b`
+- Git inicializado — 4 commits locais
 - Para publicar: `gh repo create fugas-da-turma --public --source . --push`
 - TypeScript: 0 erros (`npx tsc --noEmit`)
 - Todas as 50 fases implementadas e testáveis
 - Todas as mecânicas especiais implementadas e com feedback visual
+- Antagonista sempre visível, com catchRate por fase (ADR-009)
+- Redesign UX/UI completo estética HQ/quadrinhos (ADR-010)
+- Carrossel 65 imagens na MainMenu (topo + rodapé do frame principal)
+- `src/index.css` com keyframes globais de animação
+- Confetti na tela de vitória
 
 **Próximos passos sugeridos:**
 1. Criar repositório GitHub e configurar Vercel

@@ -12,202 +12,209 @@ const ANTS: Array<{
   name: string
   emoji: string
   color: string
+  accent: string
   bg: string
   desc: string
-  special: string
-  img: string
   danger: string
+  dangerIcon: string
+  img: string
 }> = [
   {
     id: 'monica',
     name: 'Mônica',
     emoji: '👧',
     color: '#dc2626',
-    bg: '#fee2e2',
-    desc: 'Ela está com o Sansão e vai te alcançar!',
-    special: 'Perseguição urbana rápida',
-    img: encodeURI('/M%C3%B4nica.jpg'),
-    danger: '⚡ Muito rápida',
+    accent: '#fee2e2',
+    bg: '#fff5f5',
+    desc: 'Ela está com o Sansão e não vai parar de te perseguir!',
+    danger: 'Muito rápida',
+    dangerIcon: '⚡',
+    img: encodeURI('/Mônica.jpg'),
   },
   {
     id: 'capitao',
     name: 'Capitão Feio',
     emoji: '🦹',
     color: '#374151',
-    bg: '#f3f4f6',
+    accent: '#f3f4f6',
+    bg: '#f9fafb',
     desc: 'Traz chuva e sujeira — cuidado se for o Cascão!',
-    special: 'Invoca chuva que causa dano',
-    img: encodeURI('/Capit%C3%A3o%20Feio.jpg'),
-    danger: '🌧️ Chuva perigosa',
+    danger: 'Chuva perigosa',
+    dangerIcon: '🌧️',
+    img: encodeURI('/Capitão Feio.jpg'),
   },
 ]
-
-const S = {
-  wrap: {
-    width: '100%',
-    height: '100vh',
-    display: 'flex',
-    flexDirection: 'column' as const,
-    alignItems: 'center',
-    justifyContent: 'center',
-    background: 'linear-gradient(160deg, #7f1d1d 0%, #dc2626 50%, #f87171 100%)',
-    padding: '20px',
-  },
-  title: {
-    fontFamily: 'Fredoka One, sans-serif',
-    fontSize: '36px',
-    color: '#fff',
-    textShadow: '3px 3px 0 rgba(0,0,0,0.3)',
-    marginBottom: '8px',
-    textAlign: 'center' as const,
-  },
-  sub: {
-    fontFamily: 'Fredoka, sans-serif',
-    fontSize: '16px',
-    color: 'rgba(255,255,255,0.8)',
-    marginBottom: '28px',
-    textAlign: 'center' as const,
-  },
-  grid: {
-    display: 'flex',
-    gap: '24px',
-    justifyContent: 'center',
-    flexWrap: 'wrap' as const,
-    marginBottom: '24px',
-  },
-  card: (selected: boolean, color: string, bg: string): React.CSSProperties => ({
-    background: bg,
-    border: selected ? `5px solid ${color}` : '5px solid #1a1a1a',
-    borderRadius: '20px',
-    padding: '28px 24px',
-    width: '220px',
-    textAlign: 'center' as const,
-    cursor: 'pointer',
-    boxShadow: selected ? `6px 6px 0 ${color}` : '5px 5px 0 #1a1a1a',
-    transform: selected ? 'translate(-2px, -2px)' : 'none',
-    transition: 'all 0.15s',
-  }),
-  img: {
-    width: '120px',
-    height: '120px',
-    objectFit: 'cover' as const,
-    borderRadius: '12px',
-    border: '3px solid #1a1a1a',
-    marginBottom: '12px',
-  },
-  name: (color: string): React.CSSProperties => ({
-    fontFamily: 'Fredoka One, sans-serif',
-    fontSize: '26px',
-    color,
-    marginBottom: '6px',
-  }),
-  desc: {
-    fontFamily: 'Fredoka, sans-serif',
-    fontSize: '13px',
-    color: '#4b5563',
-    marginBottom: '8px',
-  },
-  dangerBadge: (color: string): React.CSSProperties => ({
-    fontFamily: 'Fredoka One, sans-serif',
-    fontSize: '13px',
-    color: '#fff',
-    background: color,
-    borderRadius: '8px',
-    padding: '3px 10px',
-    border: '2px solid #1a1a1a',
-    display: 'inline-block',
-    marginBottom: '8px',
-  }),
-  special: {
-    fontFamily: 'Fredoka, sans-serif',
-    fontSize: '11px',
-    color: '#6b7280',
-    marginTop: '4px',
-  },
-  selectBtn: (color: string): React.CSSProperties => ({
-    marginTop: '14px',
-    padding: '10px 24px',
-    fontFamily: 'Fredoka One, sans-serif',
-    fontSize: '17px',
-    color: '#fff',
-    background: color,
-    border: '3px solid #1a1a1a',
-    borderRadius: '10px',
-    cursor: 'pointer',
-    boxShadow: '3px 3px 0 #1a1a1a',
-  }),
-  tip: {
-    fontFamily: 'Fredoka, sans-serif',
-    fontSize: '13px',
-    color: 'rgba(255,255,255,0.75)',
-    marginBottom: '16px',
-    textAlign: 'center' as const,
-    background: 'rgba(0,0,0,0.2)',
-    padding: '8px 16px',
-    borderRadius: '8px',
-  },
-  backBtn: {
-    padding: '10px 28px',
-    fontFamily: 'Fredoka One, sans-serif',
-    fontSize: '16px',
-    color: '#fff',
-    background: 'rgba(255,255,255,0.2)',
-    border: '3px solid #fff',
-    borderRadius: '10px',
-    cursor: 'pointer',
-  },
-}
 
 export function AntagonistSelect({ character, onSelect, onBack }: Props) {
   const [hovered, setHovered] = useState<Antagonist | null>(null)
   const [imgErrors, setImgErrors] = useState<Set<string>>(new Set())
 
   return (
-    <div style={S.wrap}>
-      <h2 style={S.title}>😈 Quem vai te perseguir?</h2>
-      {character === 'cascao' && (
-        <p style={S.tip}>
-          ⚠️ Atenção, Cascão! O Capitão Feio invoca CHUVA — seu pior pesadelo!
-        </p>
-      )}
-      <p style={{ ...S.sub, marginBottom: '16px' }}>Escolha seu antagonista:</p>
+    <div style={{
+      width: '100%', height: '100vh',
+      display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center',
+      background: 'linear-gradient(145deg, #450a0a 0%, #991b1b 50%, #ef4444 100%)',
+      padding: '20px',
+      position: 'relative', overflow: 'hidden',
+    }}>
+      {/* halftone */}
+      <div style={{
+        position: 'absolute', inset: 0, pointerEvents: 'none',
+        backgroundImage: 'radial-gradient(rgba(255,255,255,0.12) 1.5px, transparent 1.5px)',
+        backgroundSize: '26px 26px',
+      }} />
 
-      <div style={S.grid}>
-        {ANTS.map(ant => (
-          <div
-            key={ant.id}
-            style={S.card(hovered === ant.id, ant.color, ant.bg)}
-            onMouseEnter={() => setHovered(ant.id)}
-            onMouseLeave={() => setHovered(null)}
-            onClick={() => onSelect(ant.id)}
-          >
-            {imgErrors.has(ant.id) ? (
-              <div style={{ fontSize: '80px', marginBottom: '12px' }}>{ant.emoji}</div>
-            ) : (
-              <img
-                src={ant.img}
-                alt={ant.name}
-                style={S.img}
-                onError={() => setImgErrors(prev => new Set([...prev, ant.id]))}
-              />
-            )}
-            <div style={S.name(ant.color)}>{ant.name}</div>
-            <div style={S.dangerBadge(ant.color)}>{ant.danger}</div>
-            <p style={S.desc}>{ant.desc}</p>
-            <div style={S.special}>⚡ {ant.special}</div>
-            {ant.id === 'capitao' && character === 'cascao' && (
-              <div style={{ fontSize: '11px', color: '#dc2626', marginTop: '6px', fontFamily: 'Fredoka One' }}>
-                ☁️ Modo chuva ativado!
+      <h2 style={{
+        fontFamily: 'Fredoka One, sans-serif',
+        fontSize: '40px', color: '#fff',
+        textShadow: '3px 3px 0 rgba(0,0,0,0.4)',
+        marginBottom: '8px', textAlign: 'center',
+        position: 'relative', zIndex: 1,
+        animation: 'slide-up 0.3s ease both',
+      }}>
+        😈 Quem vai te perseguir?
+      </h2>
+
+      <p style={{
+        fontFamily: 'Fredoka, sans-serif',
+        fontSize: '16px', color: 'rgba(255,255,255,0.85)',
+        marginBottom: character === 'cascao' ? '10px' : '24px',
+        textAlign: 'center', position: 'relative', zIndex: 1,
+      }}>Escolha seu antagonista:</p>
+
+      {character === 'cascao' && (
+        <div style={{
+          background: 'rgba(0,0,0,0.35)',
+          border: '2px solid rgba(255,255,255,0.3)',
+          borderRadius: '12px',
+          padding: '8px 20px',
+          fontFamily: 'Fredoka, sans-serif', fontSize: '14px',
+          color: '#fde68a',
+          marginBottom: '20px',
+          position: 'relative', zIndex: 1,
+          animation: 'slide-up 0.35s 0.05s ease both',
+        }}>
+          ⚠️ Cascão! O Capitão Feio invoca <strong>CHUVA</strong> — seu pior pesadelo!
+        </div>
+      )}
+
+      <div style={{
+        display: 'flex', gap: '28px', justifyContent: 'center',
+        flexWrap: 'wrap', marginBottom: '28px',
+        position: 'relative', zIndex: 1,
+      }}>
+        {ANTS.map((ant, idx) => {
+          const isHov = hovered === ant.id
+          return (
+            <div
+              key={ant.id}
+              onMouseEnter={() => setHovered(ant.id)}
+              onMouseLeave={() => setHovered(null)}
+              onClick={() => onSelect(ant.id)}
+              style={{
+                background: ant.bg,
+                border: `5px solid ${isHov ? ant.color : '#1a1a1a'}`,
+                borderRadius: '24px',
+                width: '210px',
+                textAlign: 'center',
+                cursor: 'pointer',
+                boxShadow: isHov ? `6px 6px 0 ${ant.color}` : '6px 6px 0 #1a1a1a',
+                transform: isHov ? 'translate(-4px,-4px)' : 'none',
+                transition: 'all 0.15s cubic-bezier(0.34,1.56,0.64,1)',
+                overflow: 'hidden',
+                animation: `slide-up 0.35s ${idx * 0.08}s ease both`,
+              }}
+            >
+              {/* Image */}
+              <div style={{
+                width: '100%', height: '160px',
+                borderBottom: `4px solid ${isHov ? ant.color : '#1a1a1a'}`,
+                overflow: 'hidden',
+                background: ant.accent,
+                position: 'relative',
+              }}>
+                {imgErrors.has(ant.id) ? (
+                  <div style={{
+                    width: '100%', height: '100%',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '90px',
+                  }}>{ant.emoji}</div>
+                ) : (
+                  <img
+                    src={ant.img}
+                    alt={ant.name}
+                    style={{
+                      width: '100%', height: '100%',
+                      objectFit: 'cover', objectPosition: 'center top',
+                      display: 'block',
+                    }}
+                    onError={() => setImgErrors(prev => new Set([...prev, ant.id]))}
+                  />
+                )}
+                {/* Danger ribbon */}
+                <div style={{
+                  position: 'absolute', bottom: 0, left: 0, right: 0,
+                  background: ant.color,
+                  padding: '4px 0',
+                  fontFamily: 'Fredoka One, sans-serif', fontSize: '13px',
+                  color: '#fff', textAlign: 'center',
+                }}>
+                  {ant.dangerIcon} {ant.danger}
+                </div>
               </div>
-            )}
-            <br />
-            <button style={S.selectBtn(ant.color)} onClick={() => onSelect(ant.id)}>
-              Enfrentar!
-            </button>
-          </div>
-        ))}
+
+              {/* Info */}
+              <div style={{ padding: '16px 16px 20px' }}>
+                <div style={{
+                  fontFamily: 'Fredoka One, sans-serif',
+                  fontSize: '28px', color: ant.color,
+                  marginBottom: '8px',
+                }}>{ant.name}</div>
+
+                <p style={{
+                  fontFamily: 'Fredoka, sans-serif',
+                  fontSize: '13px', color: '#4b5563',
+                  lineHeight: 1.4, marginBottom: '14px',
+                }}>{ant.desc}</p>
+
+                {ant.id === 'capitao' && character === 'cascao' && (
+                  <div style={{
+                    fontFamily: 'Fredoka One, sans-serif', fontSize: '12px',
+                    color: '#fff', background: '#dc2626',
+                    borderRadius: '8px', padding: '3px 10px',
+                    display: 'inline-block', marginBottom: '10px',
+                    border: '2px solid #1a1a1a',
+                  }}>☁️ Modo chuva ativado!</div>
+                )}
+
+                <button
+                  style={{
+                    display: 'block', width: '100%',
+                    padding: '12px 0',
+                    fontFamily: 'Fredoka One, sans-serif', fontSize: '18px',
+                    color: '#fff', background: ant.color,
+                    border: '3px solid #1a1a1a', borderRadius: '12px',
+                    cursor: 'pointer', boxShadow: '3px 3px 0 #1a1a1a',
+                    transition: 'all 0.1s',
+                  }}
+                  onClick={e => { e.stopPropagation(); onSelect(ant.id) }}
+                >
+                  Enfrentar! ⚔️
+                </button>
+              </div>
+            </div>
+          )
+        })}
       </div>
-      <button style={S.backBtn} onClick={onBack}>← Voltar</button>
+
+      <button onClick={onBack} style={{
+        padding: '11px 32px',
+        fontFamily: 'Fredoka One, sans-serif', fontSize: '17px',
+        color: '#fff', background: 'rgba(255,255,255,0.15)',
+        border: '3px solid rgba(255,255,255,0.6)', borderRadius: '12px',
+        cursor: 'pointer', position: 'relative', zIndex: 1,
+      }}>← Voltar</button>
     </div>
   )
 }

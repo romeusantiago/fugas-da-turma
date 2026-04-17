@@ -461,11 +461,12 @@ export function useGameEngine(
       if (s.invincibilityTimer <= 0) s.isInvincible = false
     }
 
-    // Antagonist
-    const closeBoost = s.antGap < 60 ? 1.2 : 1.0
-    s.antGap += (spd - config.phase.antagonistSpeed * closeBoost) * dt
+    // Antagonist — always closes in; boost and dodging open gap
+    const catchRate = config.phase.antagonistSpeed * 0.025
+    s.antGap -= catchRate * dt
+    if (s.isBoostActive) s.antGap += spd * 0.35 * dt
+    s.antGap = Math.min(s.antGap, 200)
     if (s.antGap < -(ANT_W / 2)) { endGame(s, 'caught'); return }
-    s.antGap = Math.min(s.antGap, 400)
 
     // Spawn obstacles
     s.distSinceLastObs += spd * dt
@@ -542,12 +543,14 @@ export function useGameEngine(
         if (pLeft < oR && pRight > oL && pTop < oB && pBot > oT) {
           s.obstaclesHit++
           s.playerHealth -= OBSTACLE_DAMAGE
+          s.antGap -= 35
           s.isBlinking = true; s.blinkTimer = 0.2
           s.isInvincible = true; s.invincibilityTimer = INVINCIBILITY_TIME
           obs.passed = true // avoid double-counting
           Audio.hit()
           s.floatingTexts.push({ x: PLAYER_SCREEN_X + PLAYER_W / 2, y: s.playerY - 10, text: `💥 -${OBSTACLE_DAMAGE}`, life: 1.0, color: '#ef4444' })
           if (s.playerHealth <= 0) { endGame(s, 'obstacle'); return }
+          if (s.antGap < -(ANT_W / 2)) { endGame(s, 'caught'); return }
           break
         }
       }
@@ -709,7 +712,18 @@ export function useGameEngine(
 
     // Antagonist
     const antX = PLAYER_SCREEN_X - s.antGap
-    if (antX + ANT_W > 0) {
+    if (antX + ANT_W > -20) {
+      // Danger flash when very close
+      if (s.antGap < 40) {
+        const pulse = 0.3 + 0.3 * Math.sin(Date.now() * 0.015)
+        ctx.save()
+        ctx.globalAlpha = pulse
+        ctx.fillStyle = '#ef4444'
+        ctx.beginPath()
+        ctx.ellipse(antX + ANT_W / 2, GROUND_Y - ANT_H / 2, ANT_W * 0.7, ANT_H * 0.7, 0, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.restore()
+      }
       drawCharacter(ctx, antX, GROUND_Y - ANT_H, ANT_W, ANT_H, antColors,
         'running', false, config.antagonist === 'monica', config.antagonist === 'capitao')
     }

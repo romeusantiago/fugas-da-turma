@@ -1,122 +1,148 @@
-import React from 'react'
+import React, { useState } from 'react'
 
 interface Props {
   onSelect: (age: number) => void
   onBack: () => void
 }
 
-const S = {
-  wrap: {
-    width: '100%',
-    height: '100vh',
-    display: 'flex',
-    flexDirection: 'column' as const,
-    alignItems: 'center',
-    justifyContent: 'center',
-    background: 'linear-gradient(160deg, #0c4a6e 0%, #0369a1 50%, #0ea5e9 100%)',
-    padding: '20px',
-  },
-  panel: {
-    background: '#fff',
-    border: '5px solid #1a1a1a',
-    borderRadius: '24px',
-    padding: '40px 48px',
-    maxWidth: '580px',
-    width: '100%',
-    textAlign: 'center' as const,
-    boxShadow: '8px 8px 0 #1a1a1a',
-  },
-  title: {
-    fontFamily: 'Fredoka One, sans-serif',
-    fontSize: '36px',
-    color: '#0c4a6e',
-    marginBottom: '8px',
-    textShadow: '2px 2px 0 rgba(0,0,0,0.08)',
-  },
-  sub: {
-    fontFamily: 'Fredoka, sans-serif',
-    fontSize: '16px',
-    color: '#64748b',
-    marginBottom: '32px',
-  },
-  grid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(4, 1fr)',
-    gap: '12px',
-    marginBottom: '24px',
-  },
-  ageBtn: {
-    padding: '18px 8px',
-    fontFamily: 'Fredoka One, sans-serif',
-    fontSize: '28px',
-    color: '#fff',
-    border: '3px solid #1a1a1a',
-    borderRadius: '14px',
-    cursor: 'pointer',
-    boxShadow: '4px 4px 0 #1a1a1a',
-    transition: 'transform 0.1s, box-shadow 0.1s',
-  },
-  backBtn: {
-    padding: '10px 24px',
-    fontFamily: 'Fredoka One, sans-serif',
-    fontSize: '16px',
-    color: '#4b5563',
-    background: '#f3f4f6',
-    border: '3px solid #1a1a1a',
-    borderRadius: '10px',
-    cursor: 'pointer',
-    boxShadow: '3px 3px 0 #1a1a1a',
-  },
-}
-
 const AGES = [
-  { age: 4, emoji: '🧸', label: '4 anos', color: '#10b981', desc: 'Muito Fácil' },
-  { age: 5, emoji: '🌟', label: '5 anos', color: '#22c55e', desc: 'Muito Fácil' },
-  { age: 6, emoji: '🚀', label: '6 anos', color: '#3b82f6', desc: 'Fácil' },
-  { age: 7, emoji: '⚡', label: '7 anos', color: '#8b5cf6', desc: 'Médio' },
-  { age: 8, emoji: '🎯', label: '8 anos', color: '#f59e0b', desc: 'Médio' },
-  { age: 9, emoji: '🔥', label: '9 anos', color: '#f97316', desc: 'Difícil' },
-  { age: 10, emoji: '💥', label: '10 anos', color: '#ef4444', desc: 'Muito Difícil' },
+  { age: 4,  emoji: '🧸', color: '#10b981', dark: '#065f46', label: 'Super Fácil', dots: 1 },
+  { age: 5,  emoji: '🌈', color: '#22c55e', dark: '#14532d', label: 'Muito Fácil', dots: 1 },
+  { age: 6,  emoji: '🚀', color: '#3b82f6', dark: '#1e3a8a', label: 'Fácil',       dots: 2 },
+  { age: 7,  emoji: '⚡', color: '#8b5cf6', dark: '#4c1d95', label: 'Médio',       dots: 3 },
+  { age: 8,  emoji: '🎯', color: '#f59e0b', dark: '#78350f', label: 'Médio',       dots: 3 },
+  { age: 9,  emoji: '🔥', color: '#f97316', dark: '#7c2d12', label: 'Difícil',     dots: 4 },
+  { age: 10, emoji: '💥', color: '#ef4444', dark: '#7f1d1d', label: 'Expert',      dots: 5 },
 ]
 
+function Dots({ n }: { n: number }) {
+  return (
+    <div style={{ display: 'flex', gap: 3, justifyContent: 'center', marginTop: 5 }}>
+      {[1,2,3,4,5].map(i => (
+        <div key={i} style={{
+          width: 7, height: 7, borderRadius: '50%',
+          background: i <= n ? '#fff' : 'rgba(255,255,255,0.22)',
+          border: '1.5px solid rgba(255,255,255,0.4)',
+          transition: 'background 0.2s',
+        }} />
+      ))}
+    </div>
+  )
+}
+
 export function AgeSelect({ onSelect, onBack }: Props) {
-  const hover = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.currentTarget.style.transform = 'translate(-2px, -2px)'
-    e.currentTarget.style.boxShadow = '6px 6px 0 #1a1a1a'
-  }
-  const unhover = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.currentTarget.style.transform = ''
-    e.currentTarget.style.boxShadow = '4px 4px 0 #1a1a1a'
-  }
+  const [hovered, setHovered] = useState<number | null>(null)
 
   return (
-    <div style={S.wrap}>
-      <div style={S.panel}>
-        <div style={{ fontSize: '48px', marginBottom: '8px' }}>🎂</div>
-        <h2 style={S.title}>Quantos anos você tem?</h2>
-        <p style={S.sub}>O jogo vai se ajustar à sua idade automaticamente!</p>
+    <div style={{
+      width: '100%', height: '100vh',
+      display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center',
+      background: 'linear-gradient(145deg, #78350f 0%, #b45309 40%, #fbbf24 100%)',
+      padding: '20px',
+      position: 'relative',
+      overflow: 'hidden',
+    }}>
+      {/* halftone */}
+      <div style={{
+        position: 'absolute', inset: 0, pointerEvents: 'none',
+        backgroundImage: 'radial-gradient(#fff 1.5px, transparent 1.5px)',
+        backgroundSize: '26px 26px', opacity: 0.1,
+      }} />
 
-        <div style={S.grid}>
-          {AGES.map(({ age, emoji, label, color, desc }) => (
-            <button
-              key={age}
-              style={{ ...S.ageBtn, background: color }}
-              onMouseEnter={hover}
-              onMouseLeave={unhover}
-              onClick={() => onSelect(age)}
-              title={desc}
-            >
-              <div>{emoji}</div>
-              <div style={{ fontSize: '14px', marginTop: '4px' }}>{age}</div>
-            </button>
-          ))}
+      <div style={{
+        background: '#fff',
+        border: '5px solid #1a1a1a',
+        borderRadius: '28px',
+        padding: '36px 44px 28px',
+        maxWidth: '640px', width: '100%',
+        textAlign: 'center',
+        boxShadow: '8px 8px 0 #1a1a1a',
+        position: 'relative', zIndex: 1,
+        animation: 'slide-up 0.35s ease both',
+      }}>
+        <div style={{ fontSize: '56px', marginBottom: '6px', animation: 'wiggle 2.5s ease-in-out infinite' }}>🎂</div>
+
+        <h2 style={{
+          fontFamily: 'Fredoka One, sans-serif',
+          fontSize: '38px', color: '#92400e',
+          textShadow: '2px 2px 0 rgba(0,0,0,0.09)',
+          marginBottom: '6px',
+        }}>Quantos anos você tem?</h2>
+
+        <p style={{
+          fontFamily: 'Fredoka, sans-serif',
+          fontSize: '16px', color: '#78350f',
+          marginBottom: '30px',
+        }}>O jogo ajusta a velocidade só para você! 🎮</p>
+
+        <div style={{
+          display: 'flex', gap: '10px',
+          justifyContent: 'center', flexWrap: 'wrap',
+          marginBottom: '24px',
+        }}>
+          {AGES.map(({ age, emoji, color, dark, label, dots }) => {
+            const isHov = hovered === age
+            return (
+              <button
+                key={age}
+                onMouseEnter={() => setHovered(age)}
+                onMouseLeave={() => setHovered(null)}
+                onClick={() => onSelect(age)}
+                style={{
+                  width: '80px', padding: '14px 0 12px',
+                  background: color,
+                  border: '4px solid #1a1a1a',
+                  borderRadius: '18px',
+                  cursor: 'pointer',
+                  boxShadow: isHov ? '0 0 0 #1a1a1a' : '5px 5px 0 #1a1a1a',
+                  transform: isHov ? 'translate(-4px,-4px) scale(1.1)' : 'none',
+                  transition: 'all 0.13s cubic-bezier(0.34,1.56,0.64,1)',
+                  display: 'flex', flexDirection: 'column',
+                  alignItems: 'center', gap: 0,
+                }}
+              >
+                <span style={{ fontSize: '28px', lineHeight: 1.1 }}>{emoji}</span>
+                <span style={{
+                  fontFamily: 'Fredoka One, sans-serif',
+                  fontSize: '34px', color: '#fff',
+                  textShadow: `3px 3px 0 ${dark}`,
+                  lineHeight: 1,
+                }}>{age}</span>
+                <span style={{
+                  fontFamily: 'Fredoka, sans-serif', fontWeight: 600,
+                  fontSize: '10px', color: 'rgba(255,255,255,0.95)',
+                  lineHeight: 1.2, marginTop: 1,
+                }}>{label}</span>
+                <Dots n={dots} />
+              </button>
+            )
+          })}
         </div>
 
-        <div style={{ fontFamily: 'Fredoka, sans-serif', fontSize: '12px', color: '#94a3b8', marginBottom: '20px' }}>
-          🟢 Mais fácil &nbsp; → &nbsp; 🔴 Mais difícil
+        {/* Difficulty gradient legend */}
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          gap: '8px', marginBottom: '22px',
+          fontFamily: 'Fredoka, sans-serif', fontSize: '13px', color: '#92400e',
+        }}>
+          <span>😊 Mais fácil</span>
+          <div style={{
+            width: 80, height: 8, borderRadius: 4,
+            background: 'linear-gradient(90deg, #10b981, #f59e0b, #ef4444)',
+            border: '2px solid #1a1a1a',
+          }} />
+          <span>😤 Mais difícil</span>
         </div>
 
-        <button style={S.backBtn} onClick={onBack}>← Voltar</button>
+        <button onClick={onBack} style={{
+          padding: '10px 32px',
+          fontFamily: 'Fredoka One, sans-serif', fontSize: '17px',
+          color: '#92400e', background: '#fef3c7',
+          border: '3px solid #1a1a1a', borderRadius: '12px',
+          cursor: 'pointer', boxShadow: '3px 3px 0 #1a1a1a',
+          transition: 'all 0.12s',
+        }}>← Voltar</button>
       </div>
     </div>
   )
