@@ -167,39 +167,29 @@ function drawSprite(
   const id = oc.getImageData(0, 0, w, h)
   const d  = id.data
 
-  if (bgColor === 'white') {
-    // Fundo branco (Mônica): flood-fill a partir das bordas com cor branca conhecida.
-    // Contornos escuros bloqueiam o fill → corpo/olhos interiores ficam intocados.
-    const bgR = 255, bgG = 255, bgB = 255
-    const HARD = 10, SOFT = 30
-    const visited = new Uint8Array(w * h)
-    const stack: number[] = []
-    for (let x = 0; x < w; x++) { stack.push(x); stack.push((h - 1) * w + x) }
-    for (let y = 1; y < h - 1; y++) { stack.push(y * w); stack.push(y * w + w - 1) }
-    while (stack.length) {
-      const idx = stack.pop()!
-      if (visited[idx]) continue
-      visited[idx] = 1
-      const pi = idx * 4
-      const dr = d[pi] - bgR, dg = d[pi + 1] - bgG, db = d[pi + 2] - bgB
-      const dist = Math.sqrt(dr * dr + dg * dg + db * db)
-      if (dist >= SOFT) continue
-      d[pi + 3] = dist < HARD ? 0 : (dist - HARD) / (SOFT - HARD) * 255 | 0
-      const x = idx % w, y = idx / w | 0
-      if (x > 0)     stack.push(idx - 1)
-      if (x < w - 1) stack.push(idx + 1)
-      if (y > 0)     stack.push(idx - w)
-      if (y < h - 1) stack.push(idx + w)
-    }
-  } else {
-    // Fundo preto: chroma-key simples por pixel (contornos pretos não podem ser flood-filled).
-    const HARD = 12, SOFT = 28
-    for (let i = 0; i < d.length; i += 4) {
-      const r = d[i], g = d[i + 1], b = d[i + 2]
-      const dist = Math.sqrt(r * r + g * g + b * b)
-      if (dist < HARD) { d[i + 3] = 0; continue }
-      if (dist < SOFT) { d[i + 3] = (dist - HARD) / (SOFT - HARD) * 255 | 0 }
-    }
+  // Flood-fill chroma-key a partir das bordas — remove apenas pixels de fundo
+  // conectados à borda. Pixels interiores com mesma cor ficam preservados.
+  // Todos os sprites têm fundo preto sólido; bgColor reservado para expansão futura.
+  void bgColor
+  const HARD = 8, SOFT = 22
+  const visited = new Uint8Array(w * h)
+  const stack: number[] = []
+  for (let x = 0; x < w; x++) { stack.push(x); stack.push((h - 1) * w + x) }
+  for (let y = 1; y < h - 1; y++) { stack.push(y * w); stack.push(y * w + w - 1) }
+  while (stack.length) {
+    const idx = stack.pop()!
+    if (visited[idx]) continue
+    visited[idx] = 1
+    const pi = idx * 4
+    const r = d[pi], g = d[pi + 1], b = d[pi + 2]
+    const dist = Math.sqrt(r * r + g * g + b * b)
+    if (dist >= SOFT) continue
+    d[pi + 3] = dist < HARD ? 0 : (dist - HARD) / (SOFT - HARD) * 255 | 0
+    const x = idx % w, y = idx / w | 0
+    if (x > 0)     stack.push(idx - 1)
+    if (x < w - 1) stack.push(idx + 1)
+    if (y > 0)     stack.push(idx - w)
+    if (y < h - 1) stack.push(idx + w)
   }
 
   oc.putImageData(id, 0, 0)
