@@ -77,12 +77,15 @@ export function AgeSelect({ onSelect, onBack }: Props) {
         }}>O jogo ajusta a velocidade só para você! 🎮</p>
 
         <div style={{
-          display: 'flex', gap: '10px',
-          justifyContent: 'center', flexWrap: 'wrap',
-          marginBottom: '24px',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(2, 1fr)',
+          gap: '12px',
+          maxWidth: '340px',
+          margin: '0 auto 24px',
         }}>
-          {AGES.map(({ age, emoji, color, dark, label, dots }) => {
+          {AGES.map(({ age, emoji, color, dark, label, dots }, idx) => {
             const isHov = hovered === age
+            const isLast = idx === AGES.length - 1
             return (
               <button
                 key={age}
@@ -90,7 +93,10 @@ export function AgeSelect({ onSelect, onBack }: Props) {
                 onMouseLeave={() => setHovered(null)}
                 onClick={() => onSelect(age)}
                 style={{
-                  width: '80px', padding: '14px 0 12px',
+                  gridColumn: isLast ? 'span 2' : undefined,
+                  justifySelf: isLast ? 'center' as const : undefined,
+                  width: isLast ? '155px' : '100%',
+                  padding: '14px 0 12px',
                   background: color,
                   border: '4px solid #1a1a1a',
                   borderRadius: '18px',

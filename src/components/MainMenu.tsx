@@ -26,131 +26,38 @@ const ALL_IMAGES = [
   'Jogo do Cebolinha5.jpg', 'Jogo do Cebolinha6.webp',
 ].map(f => encodeURI('/' + f))
 
-// Split into two rows, second row reversed for opposite scroll direction
 const ROW1 = ALL_IMAGES
 const ROW2 = [...ALL_IMAGES].reverse()
 
-const IMG_SIZE = 68
-const IMG_GAP = 8
-const ITEM_W = IMG_SIZE + IMG_GAP
+const IMG_SIZE = 60
+const IMG_GAP = 6
+const ITEM_W  = IMG_SIZE + IMG_GAP
 
-interface Props {
-  onStart: () => void
-}
+interface Props { onStart: () => void }
 
-const S = {
-  wrap: {
-    width: '100%',
-    height: '100vh',
-    display: 'flex',
-    flexDirection: 'column' as const,
-    alignItems: 'center',
-    justifyContent: 'center',
-    background: 'linear-gradient(160deg, #1e1b4b 0%, #4c1d95 40%, #7e22ce 70%, #be185d 100%)',
-    position: 'relative' as const,
-    overflow: 'hidden',
-  },
-  dots: {
-    position: 'absolute' as const,
-    top: 0, left: 0, right: 0, bottom: 0,
-    backgroundImage: 'radial-gradient(#a855f7 1.5px, transparent 1.5px)',
-    backgroundSize: '28px 28px',
-    opacity: 0.18,
-    zIndex: 1,
-  },
-  carouselWrap: {
-    position: 'absolute' as const,
-    top: 0, left: 0, right: 0,
-    zIndex: 1,
-    pointerEvents: 'none' as const,
-    paddingTop: '12px',
-    display: 'flex',
-    flexDirection: 'column' as const,
-    gap: '8px',
-  },
-  row: {
-    display: 'flex',
-    overflow: 'hidden' as const,
-    width: '100%',
-  },
-  hqPanel: {
-    background: '#fff',
-    border: '5px solid #1a1a1a',
-    borderRadius: '24px',
-    padding: '0',
-    maxWidth: '560px',
-    width: '90%',
-    textAlign: 'center' as const,
-    boxShadow: '8px 8px 0 #1a1a1a',
-    position: 'relative' as const,
-    zIndex: 2,
-    overflow: 'hidden' as const,
-  },
-  title: {
-    fontFamily: 'Fredoka One, sans-serif',
-    fontSize: '54px',
-    color: '#be185d',
-    lineHeight: 1,
-    textShadow: '4px 4px 0 #1a1a1a',
-    letterSpacing: '-1px',
-    marginBottom: '4px',
-  },
-  subtitle: {
-    fontFamily: 'Fredoka One, sans-serif',
-    fontSize: '20px',
-    color: '#7e22ce',
-    marginBottom: '28px',
-    textShadow: '2px 2px 0 rgba(0,0,0,0.1)',
-  },
-  btn: {
-    display: 'block',
-    width: '100%',
-    padding: '16px 32px',
-    fontFamily: 'Fredoka One, sans-serif',
-    fontSize: '26px',
-    color: '#fff',
-    background: '#be185d',
-    border: '4px solid #1a1a1a',
-    borderRadius: '14px',
-    cursor: 'pointer',
-    boxShadow: '5px 5px 0 #1a1a1a',
-    transition: 'transform 0.1s, box-shadow 0.1s',
-    marginBottom: '12px',
-    letterSpacing: '0.5px',
-  },
-  badge: {
-    display: 'inline-block',
-    background: '#fef08a',
-    border: '3px solid #1a1a1a',
-    borderRadius: '50px',
-    padding: '4px 16px',
-    fontFamily: 'Fredoka One, sans-serif',
-    fontSize: '14px',
-    color: '#1a1a1a',
-    marginBottom: '20px',
-    boxShadow: '2px 2px 0 #1a1a1a',
-  },
-}
-
-function CarouselRow({ images, direction }: { images: string[]; direction: 'left' | 'right' }) {
+function CarouselRow({ images, direction, opacity = 1 }: {
+  images: string[]
+  direction: 'left' | 'right'
+  opacity?: number
+}) {
   const [offset, setOffset] = useState(direction === 'right' ? -(images.length * ITEM_W) : 0)
   const totalW = images.length * ITEM_W
 
   useEffect(() => {
     let raf: number
     let last = performance.now()
-    const speed = direction === 'left' ? 40 : 38
+    const speed = direction === 'left' ? 36 : 34
 
     function tick(now: number) {
       const dt = (now - last) / 1000
       last = now
       setOffset(o => {
         if (direction === 'left') {
-          const next = o - speed * dt
-          return next <= -totalW ? next + totalW : next
+          const n = o - speed * dt
+          return n <= -totalW ? n + totalW : n
         } else {
-          const next = o + speed * dt
-          return next >= 0 ? next - totalW : next
+          const n = o + speed * dt
+          return n >= 0 ? n - totalW : n
         }
       })
       raf = requestAnimationFrame(tick)
@@ -159,27 +66,34 @@ function CarouselRow({ images, direction }: { images: string[]; direction: 'left
     return () => cancelAnimationFrame(raf)
   }, [direction, totalW])
 
-  // Duplicate images for seamless wrap
   const doubled = [...images, ...images]
 
   return (
-    <div style={S.row}>
-      <div style={{ display: 'flex', gap: IMG_GAP, transform: `translateX(${offset}px)`, willChange: 'transform' }}>
+    <div style={{ overflow: 'hidden', width: '100%', opacity, position: 'relative' }}>
+      {/* Edge fade — left */}
+      <div style={{
+        position: 'absolute', left: 0, top: 0, bottom: 0, width: 60, zIndex: 1,
+        background: 'linear-gradient(90deg, #070b14, transparent)',
+        pointerEvents: 'none',
+      }} />
+      {/* Edge fade — right */}
+      <div style={{
+        position: 'absolute', right: 0, top: 0, bottom: 0, width: 60, zIndex: 1,
+        background: 'linear-gradient(270deg, #070b14, transparent)',
+        pointerEvents: 'none',
+      }} />
+      <div style={{
+        display: 'flex', gap: IMG_GAP,
+        transform: `translateX(${offset}px)`,
+        willChange: 'transform',
+      }}>
         {doubled.map((src, i) => (
-          <img
-            key={i}
-            src={src}
-            alt=""
-            style={{
-              width: IMG_SIZE,
-              height: IMG_SIZE,
-              objectFit: 'cover',
-              borderRadius: 12,
-              border: '2px solid #e2e8f0',
-              flexShrink: 0,
-              display: 'block',
-            }}
-          />
+          <img key={i} src={src} alt="" style={{
+            width: IMG_SIZE, height: IMG_SIZE,
+            objectFit: 'cover', borderRadius: 10,
+            border: '2px solid rgba(255,255,255,0.12)',
+            flexShrink: 0, display: 'block',
+          }} />
         ))}
       </div>
     </div>
@@ -188,62 +102,133 @@ function CarouselRow({ images, direction }: { images: string[]; direction: 'left
 
 export function MainMenu({ onStart }: Props) {
   const [stars, setStars] = useState(0)
+  const [btnHov, setBtnHov] = useState(false)
 
   useEffect(() => {
     const save = loadSave()
     setStars(Object.values(save.phases).reduce((a, p) => a + p.stars, 0))
   }, [])
 
-  const hover = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.currentTarget.style.transform = 'translate(-2px, -2px)'
-    e.currentTarget.style.boxShadow = '7px 7px 0 #1a1a1a'
-  }
-  const unhover = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.currentTarget.style.transform = ''
-    e.currentTarget.style.boxShadow = '5px 5px 0 #1a1a1a'
-  }
-
   return (
-    <div style={S.wrap}>
-      <div style={S.dots} />
+    <div style={{
+      width: '100%', height: '100vh',
+      display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center',
+      background: '#070b14',
+      position: 'relative', overflow: 'hidden',
+    }}>
+      {/* Spotlight radial — aquecimento central */}
+      <div style={{
+        position: 'absolute', inset: 0, pointerEvents: 'none',
+        background: 'radial-gradient(ellipse 70% 55% at 50% 50%, rgba(220,38,38,0.12) 0%, transparent 70%)',
+      }} />
 
-      {/* Painel principal */}
-      <div style={{ ...S.hqPanel, animation: 'slide-up 0.4s ease both' }}>
+      {/* Carrossel topo — borda atmosférica */}
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, pointerEvents: 'none' }}>
+        <div style={{ paddingTop: 10 }}>
+          <CarouselRow images={ROW1} direction="left" opacity={0.45} />
+        </div>
+      </div>
 
-        {/* Carrossel topo */}
-        <div style={{ paddingTop: '16px', marginBottom: '20px' }}>
-          <CarouselRow images={ROW1} direction="left" />
+      {/* Carrossel rodapé — borda atmosférica */}
+      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, pointerEvents: 'none' }}>
+        <div style={{ paddingBottom: 10 }}>
+          <CarouselRow images={ROW2} direction="right" opacity={0.45} />
+        </div>
+      </div>
+
+      {/* Conteúdo central */}
+      <div style={{
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'center', textAlign: 'center',
+        padding: '0 24px',
+        position: 'relative', zIndex: 2,
+        animation: 'slide-up 0.5s ease both',
+      }}>
+        {/* Ícones animados */}
+        <div style={{
+          fontSize: '52px', marginBottom: '16px',
+          display: 'flex', gap: '12px',
+          animation: 'float 3s ease-in-out infinite',
+        }}>
+          🏃💨
         </div>
 
-        <div style={{ padding: '0 40px' }}>
-        <h1 style={S.title}>Fugas da Turma!</h1>
-        <p style={S.subtitle}>Escape e vença — corra, pule e deslize para chegar ao final de cada fase!</p>
+        {/* Título */}
+        <h1 style={{
+          fontFamily: 'Fredoka One, sans-serif',
+          fontSize: 'clamp(52px, 10vw, 86px)',
+          color: '#fbbf24',
+          lineHeight: 0.95,
+          textShadow: '4px 4px 0 #1a1a1a, 6px 6px 0 rgba(0,0,0,0.4)',
+          letterSpacing: '-1px',
+          marginBottom: '12px',
+        }}>
+          Fugas da<br />Turma!
+        </h1>
 
+        {/* Tagline */}
+        <p style={{
+          fontFamily: 'Fredoka One, sans-serif',
+          fontSize: '20px',
+          color: 'rgba(255,255,255,0.65)',
+          marginBottom: stars > 0 ? '16px' : '32px',
+          letterSpacing: '0.3px',
+        }}>
+          Corra, pule e deslize para escapar!
+        </p>
+
+        {/* Badge de estrelas */}
         {stars > 0 && (
-          <div style={{ ...S.badge, animation: 'pop-in 0.4s 0.2s ease both' }}>
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: '6px',
+            background: 'rgba(251,191,36,0.15)',
+            border: '2px solid rgba(251,191,36,0.4)',
+            borderRadius: '50px',
+            padding: '6px 18px',
+            fontFamily: 'Fredoka One, sans-serif', fontSize: '15px',
+            color: '#fbbf24',
+            marginBottom: '28px',
+            animation: 'pop-in 0.4s 0.2s ease both',
+          }}>
             ⭐ {stars} estrela{stars !== 1 ? 's' : ''} coletada{stars !== 1 ? 's' : ''}
           </div>
         )}
 
-        <button style={S.btn} onMouseEnter={hover} onMouseLeave={unhover} onClick={onStart}>
+        {/* Botão principal */}
+        <button
+          onMouseEnter={() => setBtnHov(true)}
+          onMouseLeave={() => setBtnHov(false)}
+          onClick={onStart}
+          style={{
+            padding: '18px 64px',
+            fontFamily: 'Fredoka One, sans-serif',
+            fontSize: '28px',
+            color: '#fff',
+            background: btnHov ? '#b91c1c' : '#dc2626',
+            border: '4px solid #1a1a1a',
+            borderRadius: '18px',
+            cursor: 'pointer',
+            boxShadow: btnHov
+              ? '2px 2px 0 #1a1a1a'
+              : '6px 6px 0 #1a1a1a',
+            transform: btnHov ? 'translate(4px,4px)' : 'none',
+            transition: 'all 0.12s cubic-bezier(0.34,1.56,0.64,1)',
+            letterSpacing: '0.5px',
+            marginBottom: '24px',
+          }}
+        >
           🎮 Jogar Agora!
         </button>
 
-        <div style={{
-          marginTop: '16px', padding: '10px 16px',
-          background: '#f8fafc', borderRadius: '12px',
-          border: '2px solid #e2e8f0',
-          fontFamily: 'Fredoka, sans-serif', fontSize: '13px', color: '#94a3b8',
+        {/* Controles — discretos, sem caixa */}
+        <p style={{
+          fontFamily: 'Fredoka, sans-serif', fontSize: '13px',
+          color: 'rgba(255,255,255,0.28)',
+          lineHeight: 1.7,
         }}>
-          <p>🖥️ Espaço = Pular &nbsp;|&nbsp; Shift = Deslizar &nbsp;|&nbsp; B = Boost</p>
-          <p style={{ marginTop: '4px' }}>📱 Toque = Pular &nbsp;|&nbsp; Duplo Toque = Deslizar</p>
-        </div>
-        </div>
-
-        {/* Carrossel rodapé */}
-        <div style={{ marginTop: '20px' }}>
-          <CarouselRow images={ROW2} direction="right" />
-        </div>
+          Espaço / Toque = Pular &nbsp;·&nbsp; Shift / Duplo Toque = Deslizar &nbsp;·&nbsp; B = Boost
+        </p>
       </div>
     </div>
   )
