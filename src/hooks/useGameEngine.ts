@@ -13,6 +13,7 @@ import {
   CHARACTER_COLORS, ANT_COLORS,
 } from '../lib/gameConstants'
 import { Audio } from '../lib/audioSystem'
+import { getPlayerSpriteConfig, getAntagonistSpriteConfig, SpriteQuadrant } from '../lib/characterSprites'
 import { GameConfig, Obstacle, Platform, GameItem, Drop, GameResult, DefeatCause, RunStats } from '../types/game'
 
 interface EngineState {
@@ -117,6 +118,71 @@ function makeInitialState(config: GameConfig): EngineState {
 function randBetween(a: number, b: number) { return a + Math.random() * (b - a) }
 
 // ── Drawing helpers ──────────────────────────────────────────────────────────
+
+function isSpriteReady(el: CanvasImageSource | null): boolean {
+  if (!el) return false
+  if (el instanceof HTMLVideoElement) return el.readyState >= 2
+  return (el as HTMLImageElement).complete && (el as HTMLImageElement).naturalWidth > 0
+}
+
+function makeSprite(cfg: import('../lib/characterSprites').SpriteConfig): CanvasImageSource {
+  if (cfg.isVideo) {
+    const v = document.createElement('video')
+    v.src = cfg.src; v.loop = true; v.muted = true; v.playsInline = true; v.autoplay = true
+    v.play().catch(() => {})
+    return v
+  }
+  const img = new Image(); img.src = cfg.src; return img
+}
+
+// Offscreen canvases for luma-key (one per character slot, reused every frame)
+const _offPlayer = document.createElement('canvas')
+const _offAnt    = document.createElement('canvas')
+
+function drawSprite(
+  ctx: CanvasRenderingContext2D,
+  source: CanvasImageSource,
+  quadrant: import('../lib/characterSprites').SpriteQuadrant | undefined,
+  dx: number, dy: number, dw: number, dh: number,
+  off: HTMLCanvasElement,
+) {
+  const w = Math.ceil(dw), h = Math.ceil(dh)
+  if (off.width !== w)  off.width  = w
+  if (off.height !== h) off.height = h
+  const oc = off.getContext('2d', { willReadFrequently: true })!
+  oc.clearRect(0, 0, w, h)
+
+  if (quadrant) {
+    const srcW = source instanceof HTMLVideoElement ? source.videoWidth  : (source as HTMLImageElement).naturalWidth
+    const srcH = source instanceof HTMLVideoElement ? source.videoHeight : (source as HTMLImageElement).naturalHeight
+    const hw = srcW / 2, hh = srcH / 2
+    const sx = (quadrant === 'topRight' || quadrant === 'bottomRight') ? hw : 0
+    const sy = (quadrant === 'bottomLeft' || quadrant === 'bottomRight') ? hh : 0
+    oc.drawImage(source, sx, sy, hw, hh, 0, 0, w, h)
+  } else {
+    oc.drawImage(source, 0, 0, w, h)
+  }
+
+  // Corner-sample chroma key: detect background color from frame corners, remove matching pixels
+  const id = oc.getImageData(0, 0, w, h)
+  const d  = id.data
+  const ci = (row: number, col: number) => (row * w + col) * 4
+  const bgR = (d[ci(0,0)] + d[ci(0,w-1)] + d[ci(h-1,0)] + d[ci(h-1,w-1)]) / 4
+  const bgG = (d[ci(0,0)+1] + d[ci(0,w-1)+1] + d[ci(h-1,0)+1] + d[ci(h-1,w-1)+1]) / 4
+  const bgB = (d[ci(0,0)+2] + d[ci(0,w-1)+2] + d[ci(h-1,0)+2] + d[ci(h-1,w-1)+2]) / 4
+  const HARD = 35, SOFT = 80
+  for (let i = 0; i < d.length; i += 4) {
+    const dr = d[i] - bgR, dg = d[i+1] - bgG, db = d[i+2] - bgB
+    const dist = Math.sqrt(dr*dr + dg*dg + db*db)
+    if (dist < HARD) {
+      d[i + 3] = 0
+    } else if (dist < SOFT) {
+      d[i + 3] = Math.round(((dist - HARD) / (SOFT - HARD)) * 255)
+    }
+  }
+  oc.putImageData(id, 0, 0)
+  ctx.drawImage(off, dx, dy, w, h)
+}
 
 function drawRoundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
   ctx.beginPath()
@@ -261,8 +327,34 @@ export function useGameEngine(
   const lastTRef    = useRef(0)
   const jumpPRef    = useRef(false)
   const slidePRef   = useRef(false)
+  const slideHoldRef = useRef(false)
   const boostPRef   = useRef(false)
   const endCalledRef = useRef(false)
+  const playerImgRef  = useRef<CanvasImageSource | null>(null)
+  const antImgRef     = useRef<CanvasImageSource | null>(null)
+  const playerClipRef  = useRef<SpriteQuadrant | undefined>(undefined)
+  const antClipRef     = useRef<SpriteQuadrant | undefined>(undefined)
+  const playerScaleRef     = useRef<number>(1.7)
+  const antScaleRef        = useRef<number>(2.0)
+  const playerGroundOffRef = useRef<number>(0)
+  const antGroundOffRef    = useRef<number>(0)
+
+  useEffect(() => {
+    const pc = getPlayerSpriteConfig(config.character)
+    const ac = getAntagonistSpriteConfig(config.antagonist)
+    playerClipRef.current     = pc.quadrant
+    antClipRef.current        = ac.quadrant
+    playerScaleRef.current    = pc.scale ?? 1.7
+    antScaleRef.current       = ac.scale ?? 2.0
+    playerGroundOffRef.current = pc.groundOffset ?? 0
+    antGroundOffRef.current    = ac.groundOffset ?? 0
+    const ps = makeSprite(pc); playerImgRef.current = ps
+    const as_ = makeSprite(ac); antImgRef.current   = as_
+    return () => {
+      if (ps instanceof HTMLVideoElement) { ps.pause(); ps.src = '' }
+      if (as_ instanceof HTMLVideoElement) { as_.pause(); as_.src = '' }
+    }
+  }, [config.character, config.antagonist])
 
   const obstTpls    = getObstacles(config.character)
   const itemTpls    = getItems(config.character)
@@ -289,8 +381,10 @@ export function useGameEngine(
 
   function spawnPlatform(s: EngineState) {
     const width = Math.round(randBetween(100, 180))
-    // Max jump height with JUMP_VY=-430, GRAVITY=650: ~142px. Use 90-128px for safety.
-    const heightAbove = Math.round(randBetween(90, 128))
+    // Standing player head at GROUND_Y-PLAYER_H=308, slide head at GROUND_Y-PLAYER_SLIDE_H=352.
+    // platBottom = GROUND_Y - heightAbove + PLATFORM_H must be: >308 (blocks standing) and <352 (slide passes).
+    // → heightAbove in [54, 98]. Use [58, 90] for safety margin.
+    const heightAbove = Math.round(randBetween(58, 90))
     s.platforms.push({
       id: s.nextId++,
       x: CANVAS_W + 20,
@@ -392,8 +486,21 @@ export function useGameEngine(
     slidePRef.current = false
 
     if (s.playerState === 'sliding') {
-      s.slideDuration -= dt
-      if (s.slideDuration <= 0) { s.playerState = 'running'; s.slideCooldown = SLIDE_COOLDOWN }
+      // Hold-to-slide: pause timer while key is held
+      if (!slideHoldRef.current) {
+        s.slideDuration -= dt
+      } else {
+        s.slideDuration = Math.max(s.slideDuration, 0.15)
+      }
+
+      // Never stand up while a suspended obstacle or platform is directly overhead
+      if (s.slideDuration <= 0) {
+        const pL = PLAYER_SCREEN_X + 4, pR = PLAYER_SCREEN_X + PLAYER_W - 4
+        const overhead =
+          s.obstacles.some(o => o.suspended && !o.passed && o.x + o.width - 3 > pL && o.x + 3 < pR) ||
+          s.platforms.some(pl => pl.x + pl.width > pL && pl.x < pR)
+        if (!overhead) { s.playerState = 'running'; s.slideCooldown = SLIDE_COOLDOWN }
+      }
     }
 
     // Special effect timer
@@ -556,6 +663,29 @@ export function useGameEngine(
       }
     }
 
+    // ── Collisions: platforms (barrier — side/front hit = penalty) ──────────
+    if (!s.isInvincible) {
+      for (const plat of s.platforms) {
+        const platT = plat.y, platB = plat.y + PLATFORM_H
+        // Y overlap: player overlaps with platform body (not standing on top, not sliding under)
+        if (pBot > platT + 2 && pTop < platB - 1) {
+          // X overlap
+          if (pRight > plat.x + 2 && pLeft < plat.x + plat.width - 2) {
+            s.obstaclesHit++
+            s.playerHealth -= OBSTACLE_DAMAGE
+            s.antGap -= 35
+            s.isBlinking = true; s.blinkTimer = 0.2
+            s.isInvincible = true; s.invincibilityTimer = INVINCIBILITY_TIME
+            Audio.hit()
+            s.floatingTexts.push({ x: PLAYER_SCREEN_X + PLAYER_W / 2, y: s.playerY - 10, text: `💥 -${OBSTACLE_DAMAGE}`, life: 1.0, color: '#ef4444' })
+            if (s.playerHealth <= 0) { endGame(s, 'obstacle'); return }
+            if (s.antGap < -(ANT_W / 2)) { endGame(s, 'caught'); return }
+            break
+          }
+        }
+      }
+    }
+
     // ── Collisions: items ───────────────────────────────────────────────────
     for (const it of s.items) {
       if (it.collected) continue
@@ -713,7 +843,6 @@ export function useGameEngine(
     // Antagonist
     const antX = PLAYER_SCREEN_X - s.antGap
     if (antX + ANT_W > -20) {
-      // Danger flash when very close
       if (s.antGap < 40) {
         const pulse = 0.3 + 0.3 * Math.sin(Date.now() * 0.015)
         ctx.save()
@@ -724,8 +853,15 @@ export function useGameEngine(
         ctx.fill()
         ctx.restore()
       }
-      drawCharacter(ctx, antX, GROUND_Y - ANT_H, ANT_W, ANT_H, antColors,
-        'running', false, config.antagonist === 'monica', config.antagonist === 'capitao')
+      if (isSpriteReady(antImgRef.current)) {
+        const aScale = antScaleRef.current
+        const aSW = ANT_W * aScale, aSH = ANT_H * aScale
+        drawSprite(ctx, antImgRef.current!, antClipRef.current,
+          antX - (aSW - ANT_W) / 2, GROUND_Y - aSH + antGroundOffRef.current, aSW, aSH, _offAnt)
+      } else {
+        drawCharacter(ctx, antX, GROUND_Y - ANT_H, ANT_W, ANT_H, antColors,
+          'running', false, config.antagonist === 'monica', config.antagonist === 'capitao')
+      }
     }
 
     // Player (blink = flash every 80ms while blinking OR invincible)
@@ -750,8 +886,16 @@ export function useGameEngine(
     }
 
     if (!shouldHide) {
-      drawCharacter(ctx, PLAYER_SCREEN_X, s.playerY, PLAYER_W, playerCurrentH(s),
-        charColors, s.playerState, s.isProtected)
+      if (isSpriteReady(playerImgRef.current)) {
+        const pScale = playerScaleRef.current
+        const ph = playerCurrentH(s)
+        const pSW = PLAYER_W * pScale, pSH = ph * pScale
+        drawSprite(ctx, playerImgRef.current!, playerClipRef.current,
+          PLAYER_SCREEN_X - (pSW - PLAYER_W) / 2, s.playerY - (pSH - ph) + playerGroundOffRef.current, pSW, pSH, _offPlayer)
+      } else {
+        drawCharacter(ctx, PLAYER_SCREEN_X, s.playerY, PLAYER_W, playerCurrentH(s),
+          charColors, s.playerState, s.isProtected)
+      }
     }
 
     // Floating texts
@@ -892,17 +1036,31 @@ export function useGameEngine(
       if (e.repeat) return
       const k = e.key.toLowerCase()
       if (k === ' ' || k === 'arrowup' || k === 'w') { e.preventDefault(); jumpPRef.current = true }
-      if (k === 'shift' || k === 'arrowdown' || k === 's') { e.preventDefault(); slidePRef.current = true }
+      if (k === 'shift' || k === 'arrowdown' || k === 's') { e.preventDefault(); slidePRef.current = true; slideHoldRef.current = true }
       if (k === 'b') boostPRef.current = true
       if (k === 'escape') stateRef.current.isPaused = !stateRef.current.isPaused
     }
+    const onKeyUp = (e: KeyboardEvent) => {
+      const k = e.key.toLowerCase()
+      if (k === 'shift' || k === 'arrowdown' || k === 's') slideHoldRef.current = false
+    }
     const onTouch = (e: TouchEvent) => {
-      if (e.touches.length >= 2) slidePRef.current = true
+      if (e.touches.length >= 2) { slidePRef.current = true; slideHoldRef.current = true }
       else jumpPRef.current = true
     }
+    const onTouchEnd = (e: TouchEvent) => {
+      if (e.touches.length < 2) slideHoldRef.current = false
+    }
     window.addEventListener('keydown', onKey)
+    window.addEventListener('keyup', onKeyUp)
     window.addEventListener('touchstart', onTouch)
-    return () => { window.removeEventListener('keydown', onKey); window.removeEventListener('touchstart', onTouch) }
+    window.addEventListener('touchend', onTouchEnd)
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      window.removeEventListener('keyup', onKeyUp)
+      window.removeEventListener('touchstart', onTouch)
+      window.removeEventListener('touchend', onTouchEnd)
+    }
   }, [])
 
   const togglePause = useCallback(() => { stateRef.current.isPaused = !stateRef.current.isPaused }, [])

@@ -145,13 +145,19 @@ export function MainMenu({ onStart }: Props) {
         position: 'relative', zIndex: 2,
         animation: 'slide-up 0.5s ease both',
       }}>
-        {/* Ícones animados */}
+        {/* Personagens correndo */}
         <div style={{
-          fontSize: '52px', marginBottom: '16px',
-          display: 'flex', gap: '12px',
+          display: 'flex', gap: '8px', marginBottom: '16px',
           animation: 'float 3s ease-in-out infinite',
         }}>
-          🏃💨
+          <img src={encodeURI('/Cebolinha.jpg')} alt="Cebolinha" style={{
+            width: 72, height: 72, objectFit: 'cover', borderRadius: 14,
+            border: '3px solid rgba(255,255,255,0.2)',
+          }} />
+          <img src={encodeURI('/Cascão8.webp')} alt="Cascão" style={{
+            width: 72, height: 72, objectFit: 'cover', borderRadius: 14,
+            border: '3px solid rgba(255,255,255,0.2)',
+          }} />
         </div>
 
         {/* Título */}
@@ -221,14 +227,20 @@ export function MainMenu({ onStart }: Props) {
           🎮 Jogar Agora!
         </button>
 
-        {/* Controles — discretos, sem caixa */}
-        <p style={{
+        {/* Controles */}
+        <div style={{
+          padding: '10px 20px',
+          background: 'rgba(255,255,255,0.06)',
+          borderRadius: '12px',
+          border: '1.5px solid rgba(255,255,255,0.1)',
           fontFamily: 'Fredoka, sans-serif', fontSize: '13px',
-          color: 'rgba(255,255,255,0.28)',
-          lineHeight: 1.7,
+          color: 'rgba(255,255,255,0.45)',
+          lineHeight: 1.8,
+          textAlign: 'center',
         }}>
-          Espaço / Toque = Pular &nbsp;·&nbsp; Shift / Duplo Toque = Deslizar &nbsp;·&nbsp; B = Boost
-        </p>
+          <div>🖥️ Espaço = Pular &nbsp;|&nbsp; Shift = Deslizar &nbsp;|&nbsp; B = Boost</div>
+          <div>📱 Toque = Pular &nbsp;|&nbsp; Duplo Toque = Deslizar</div>
+        </div>
       </div>
     </div>
   )

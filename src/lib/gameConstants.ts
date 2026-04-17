@@ -19,7 +19,7 @@ export const ANT_INITIAL_GAP = 140
 // ── Physics ────────────────────────────────────────────────────────────────
 export const GRAVITY = 650
 export const JUMP_VY = -430
-export const SLIDE_DURATION = 0.3
+export const SLIDE_DURATION = 0.7
 export const SLIDE_COOLDOWN = 0.2
 
 // ── Boost ──────────────────────────────────────────────────────────────────
@@ -163,23 +163,31 @@ interface ObstacleTpl {
 // Suspended physics: standing player (top ~314) collides; sliding player (top ~358) passes under
 // Required: 30 <= floatY <= 73 (verified against GROUND_Y=390, PLAYER_H=82, PLAYER_SLIDE_H=38)
 export const CEBOLINHA_OBSTACLES: ObstacleTpl[] = [
-  { type: 'cavalete',       w: 50, h: 60, color: '#f97316', emoji: '🚧', slide: false, suspended: false, floatY: 0 },
-  { type: 'caixa',          w: 52, h: 42, color: '#92400e', emoji: '📦', slide: false, suspended: false, floatY: 0 },
-  { type: 'lixeira',        w: 38, h: 62, color: '#374151', emoji: '🗑️', slide: false, suspended: false, floatY: 0 },
-  { type: 'vestido',        w: 28, h: 75, color: '#be185d', emoji: '👗', slide: false, suspended: false, floatY: 0 },
-  { type: 'pedra',          w: 42, h: 36, color: '#6b7280', emoji: '🪨', slide: false, suspended: false, floatY: 0 },
-  { type: 'caixa_suspensa', w: 56, h: 50, color: '#92400e', emoji: '📦', slide: true,  suspended: true,  floatY: 46 },
-  { type: 'lixeira_suspensa', w: 42, h: 52, color: '#374151', emoji: '🗑️', slide: true, suspended: true, floatY: 42 },
+  { type: 'cavalete',         w: 50, h: 60, color: '#f97316', emoji: '🚧', slide: false, suspended: false, floatY: 0  },
+  { type: 'caixa',            w: 52, h: 42, color: '#92400e', emoji: '📦', slide: false, suspended: false, floatY: 0  },
+  { type: 'lixeira',          w: 38, h: 62, color: '#374151', emoji: '🗑️', slide: false, suspended: false, floatY: 0  },
+  { type: 'vestido',          w: 28, h: 75, color: '#be185d', emoji: '👗', slide: false, suspended: false, floatY: 0  },
+  { type: 'pedra',            w: 42, h: 36, color: '#6b7280', emoji: '🪨', slide: false, suspended: false, floatY: 0  },
+  { type: 'caixa_suspensa',   w: 56, h: 50, color: '#92400e', emoji: '📦', slide: true,  suspended: true,  floatY: 46 },
+  { type: 'lixeira_suspensa', w: 42, h: 52, color: '#374151', emoji: '🗑️', slide: true,  suspended: true,  floatY: 42 },
+  { type: 'placa_suspensa',   w: 80, h: 28, color: '#f97316', emoji: '🪧', slide: true,  suspended: true,  floatY: 52 },
+  { type: 'galho',            w: 88, h: 22, color: '#78350f', emoji: '🌿', slide: true,  suspended: true,  floatY: 50 },
+  { type: 'balde_suspenso',   w: 44, h: 44, color: '#eab308', emoji: '🪣', slide: true,  suspended: true,  floatY: 44 },
+  { type: 'vassoura_suspensa',w: 68, h: 20, color: '#a16207', emoji: '🧹', slide: true,  suspended: true,  floatY: 48 },
 ]
 
 export const CASCAO_OBSTACLES: ObstacleTpl[] = [
-  { type: 'lixeira',        w: 38, h: 62, color: '#374151', emoji: '🗑️', slide: false, suspended: false, floatY: 0 },
-  { type: 'caixa',          w: 52, h: 42, color: '#92400e', emoji: '📦', slide: false, suspended: false, floatY: 0 },
-  { type: 'poca',           w: 64, h: 14, color: '#3b82f6', emoji: '💧', slide: true,  suspended: false, floatY: 0 },
-  { type: 'hidrante',       w: 30, h: 72, color: '#dc2626', emoji: '🚒', slide: false, suspended: false, floatY: 0 },
-  { type: 'pedra',          w: 42, h: 36, color: '#6b7280', emoji: '🪨', slide: false, suspended: false, floatY: 0 },
-  { type: 'caixa_suspensa', w: 56, h: 50, color: '#92400e', emoji: '📦', slide: true,  suspended: true,  floatY: 46 },
-  { type: 'lixeira_suspensa', w: 42, h: 52, color: '#374151', emoji: '🗑️', slide: true, suspended: true, floatY: 42 },
+  { type: 'lixeira',          w: 38, h: 62, color: '#374151', emoji: '🗑️', slide: false, suspended: false, floatY: 0  },
+  { type: 'caixa',            w: 52, h: 42, color: '#92400e', emoji: '📦', slide: false, suspended: false, floatY: 0  },
+  { type: 'poca',             w: 64, h: 14, color: '#3b82f6', emoji: '💧', slide: true,  suspended: false, floatY: 0  },
+  { type: 'hidrante',         w: 30, h: 72, color: '#dc2626', emoji: '🚒', slide: false, suspended: false, floatY: 0  },
+  { type: 'pedra',            w: 42, h: 36, color: '#6b7280', emoji: '🪨', slide: false, suspended: false, floatY: 0  },
+  { type: 'caixa_suspensa',   w: 56, h: 50, color: '#92400e', emoji: '📦', slide: true,  suspended: true,  floatY: 46 },
+  { type: 'lixeira_suspensa', w: 42, h: 52, color: '#374151', emoji: '🗑️', slide: true,  suspended: true,  floatY: 42 },
+  { type: 'galho',            w: 88, h: 22, color: '#78350f', emoji: '🌿', slide: true,  suspended: true,  floatY: 50 },
+  { type: 'rede_suspensa',    w: 76, h: 30, color: '#7c3aed', emoji: '🪢', slide: true,  suspended: true,  floatY: 48 },
+  { type: 'balde_suspenso',   w: 44, h: 44, color: '#eab308', emoji: '🪣', slide: true,  suspended: true,  floatY: 44 },
+  { type: 'vassoura_suspensa',w: 68, h: 20, color: '#a16207', emoji: '🧹', slide: true,  suspended: true,  floatY: 48 },
 ]
 
 export const CEBOLINHA_ITEMS = [

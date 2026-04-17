@@ -36,6 +36,7 @@ export type ObstacleType =
   | 'lixeira' | 'poca' | 'hidrante' | 'pedra'
   | 'cavalete' | 'caixa' | 'vestido'
   | 'lixeira_suspensa' | 'caixa_suspensa'
+  | 'placa_suspensa' | 'galho' | 'balde_suspenso' | 'vassoura_suspensa' | 'rede_suspensa'
 
 export type ItemType = 'moeda' | 'especial' | 'tempo'
 
