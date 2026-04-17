@@ -165,49 +165,24 @@ function drawSprite(
 
   const id = oc.getImageData(0, 0, w, h)
   const d  = id.data
-  const px = (r: number, c: number) => (r * w + c) * 4
 
-  // Scan ALL border pixels (top+bottom rows, left+right cols) to detect background.
-  // More robust than corner-only: works even when character limbs reach the edges.
-  let dark = 0, light = 0, total = 0
-  const step = Math.max(1, Math.floor(Math.min(w, h) / 12))
-  for (let x = 0; x < w; x += step) {
-    for (const row of [0, h - 1]) {
-      const i = px(row, x)
-      if (d[i+3] < 10) continue // skip already-transparent
-      const lum = (d[i] + d[i+1] + d[i+2]) / 3
-      if (lum < 60)  dark++
-      if (lum > 195) light++
-      total++
-    }
-  }
-  for (let y = 0; y < h; y += step) {
-    for (const col of [0, w - 1]) {
-      const i = px(y, col)
-      if (d[i+3] < 10) continue
-      const lum = (d[i] + d[i+1] + d[i+2]) / 3
-      if (lum < 60)  dark++
-      if (lum > 195) light++
-      total++
-    }
-  }
+  // Dual chroma-key — sem detecção de borda; funciona para fundo preto e branco.
+  // Black key APERTADO (BHARD=8): remove só near-pure-black; contornos cartoon
+  //   (dist≈26 do preto) ficam totalmente opacos.
+  // White key PADRÃO (WHARD=40): remove near-white com tolerância p/ compressão.
+  const BHARD = 8,  BSOFT = 22
+  const WHARD = 40, WSOFT = 90
+  for (let i = 0; i < d.length; i += 4) {
+    const r = d[i], g = d[i+1], b = d[i+2]
 
-  // Need majority (>35%) to confidently identify background
-  const bgIsDark  = total > 0 && dark  / total > 0.35
-  const bgIsLight = total > 0 && light / total > 0.35
+    const bDist = Math.sqrt(r*r + g*g + b*b)
+    if (bDist < BHARD) { d[i+3] = 0; continue }
+    if (bDist < BSOFT) { d[i+3] = Math.round((bDist - BHARD) / (BSOFT - BHARD) * 255); continue }
 
-  if (bgIsDark || bgIsLight) {
-    const bgR = bgIsDark ? 0 : 255
-    const bgG = bgIsDark ? 0 : 255
-    const bgB = bgIsDark ? 0 : 255
-    // HARD=30: remove near-bg pixels; SOFT=75: smooth transparent→opaque edge
-    const HARD = 30, SOFT = 75
-    for (let i = 0; i < d.length; i += 4) {
-      const dr = d[i] - bgR, dg = d[i+1] - bgG, db = d[i+2] - bgB
-      const dist = Math.sqrt(dr*dr + dg*dg + db*db)
-      if (dist < HARD)      d[i+3] = 0
-      else if (dist < SOFT) d[i+3] = Math.round(((dist - HARD) / (SOFT - HARD)) * 255)
-    }
+    const wr = r - 255, wg = g - 255, wb = b - 255
+    const wDist = Math.sqrt(wr*wr + wg*wg + wb*wb)
+    if (wDist < WHARD) { d[i+3] = 0; continue }
+    if (wDist < WSOFT) { d[i+3] = Math.round((wDist - WHARD) / (WSOFT - WHARD) * 255) }
   }
 
   oc.putImageData(id, 0, 0)
