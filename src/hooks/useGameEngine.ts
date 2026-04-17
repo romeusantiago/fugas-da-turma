@@ -166,15 +166,39 @@ function drawSprite(
   const id = oc.getImageData(0, 0, w, h)
   const d  = id.data
 
-  // Black-only chroma-key — vídeos têm fundo preto sólido.
-  // BHARD=12/BSOFT=28: remove preto puro com feather curto.
-  // Branco (olhos, pele clara) fica intocado.
-  const BHARD = 12, BSOFT = 28
-  for (let i = 0; i < d.length; i += 4) {
-    const r = d[i], g = d[i+1], b = d[i+2]
-    const bDist = Math.sqrt(r*r + g*g + b*b)
-    if (bDist < BHARD) { d[i+3] = 0; continue }
-    if (bDist < BSOFT) { d[i+3] = Math.round((bDist - BHARD) / (BSOFT - BHARD) * 255) }
+  // Flood-fill chroma-key: detecta cor de fundo pelos cantos e remove apenas
+  // pixels conectados à borda. Preserva pixels interiores com mesma cor
+  // (ex: olhos brancos da Mônica em fundo branco; contornos pretos internos).
+  let sr = 0, sg = 0, sb = 0
+  const csX = [0, 1, w - 2, w - 1]
+  const csY = [0, 1, h - 2, h - 1]
+  for (const px of csX) for (const py of csY) {
+    const ci = (py * w + px) * 4
+    sr += d[ci]; sg += d[ci + 1]; sb += d[ci + 2]
+  }
+  const nc = csX.length * csY.length
+  const bgR = sr / nc | 0, bgG = sg / nc | 0, bgB = sb / nc | 0
+  const HARD = 18, SOFT = 52
+
+  const visited = new Uint8Array(w * h)
+  const stack: number[] = []
+  for (let x = 0; x < w; x++) { stack.push(x); stack.push((h - 1) * w + x) }
+  for (let y = 1; y < h - 1; y++) { stack.push(y * w); stack.push(y * w + w - 1) }
+
+  while (stack.length) {
+    const idx = stack.pop()!
+    if (visited[idx]) continue
+    visited[idx] = 1
+    const pi = idx * 4
+    const dr = d[pi] - bgR, dg = d[pi + 1] - bgG, db = d[pi + 2] - bgB
+    const dist = Math.sqrt(dr * dr + dg * dg + db * db)
+    if (dist >= SOFT) continue
+    d[pi + 3] = dist < HARD ? 0 : (dist - HARD) / (SOFT - HARD) * 255 | 0
+    const x = idx % w, y = idx / w | 0
+    if (x > 0)     stack.push(idx - 1)
+    if (x < w - 1) stack.push(idx + 1)
+    if (y > 0)     stack.push(idx - w)
+    if (y < h - 1) stack.push(idx + w)
   }
 
   oc.putImageData(id, 0, 0)
