@@ -145,6 +145,7 @@ function drawSprite(
   quadrant: import('../lib/characterSprites').SpriteQuadrant | undefined,
   dx: number, dy: number, dw: number, dh: number,
   off: HTMLCanvasElement,
+  bgColor: 'black' | 'white' = 'black',
 ) {
   const w = Math.ceil(dw), h = Math.ceil(dh)
   if (off.width !== w)  off.width  = w
@@ -166,39 +167,39 @@ function drawSprite(
   const id = oc.getImageData(0, 0, w, h)
   const d  = id.data
 
-  // Flood-fill chroma-key: detecta cor de fundo pelos cantos e remove apenas
-  // pixels conectados à borda. Preserva pixels interiores com mesma cor
-  // (ex: olhos brancos da Mônica em fundo branco; contornos pretos internos).
-  let sr = 0, sg = 0, sb = 0
-  const csX = [0, 1, w - 2, w - 1]
-  const csY = [0, 1, h - 2, h - 1]
-  for (const px of csX) for (const py of csY) {
-    const ci = (py * w + px) * 4
-    sr += d[ci]; sg += d[ci + 1]; sb += d[ci + 2]
-  }
-  const nc = csX.length * csY.length
-  const bgR = sr / nc | 0, bgG = sg / nc | 0, bgB = sb / nc | 0
-  const HARD = 18, SOFT = 52
-
-  const visited = new Uint8Array(w * h)
-  const stack: number[] = []
-  for (let x = 0; x < w; x++) { stack.push(x); stack.push((h - 1) * w + x) }
-  for (let y = 1; y < h - 1; y++) { stack.push(y * w); stack.push(y * w + w - 1) }
-
-  while (stack.length) {
-    const idx = stack.pop()!
-    if (visited[idx]) continue
-    visited[idx] = 1
-    const pi = idx * 4
-    const dr = d[pi] - bgR, dg = d[pi + 1] - bgG, db = d[pi + 2] - bgB
-    const dist = Math.sqrt(dr * dr + dg * dg + db * db)
-    if (dist >= SOFT) continue
-    d[pi + 3] = dist < HARD ? 0 : (dist - HARD) / (SOFT - HARD) * 255 | 0
-    const x = idx % w, y = idx / w | 0
-    if (x > 0)     stack.push(idx - 1)
-    if (x < w - 1) stack.push(idx + 1)
-    if (y > 0)     stack.push(idx - w)
-    if (y < h - 1) stack.push(idx + w)
+  if (bgColor === 'white') {
+    // Fundo branco (Mônica): flood-fill a partir das bordas com cor branca conhecida.
+    // Contornos escuros bloqueiam o fill → corpo/olhos interiores ficam intocados.
+    const bgR = 255, bgG = 255, bgB = 255
+    const HARD = 10, SOFT = 30
+    const visited = new Uint8Array(w * h)
+    const stack: number[] = []
+    for (let x = 0; x < w; x++) { stack.push(x); stack.push((h - 1) * w + x) }
+    for (let y = 1; y < h - 1; y++) { stack.push(y * w); stack.push(y * w + w - 1) }
+    while (stack.length) {
+      const idx = stack.pop()!
+      if (visited[idx]) continue
+      visited[idx] = 1
+      const pi = idx * 4
+      const dr = d[pi] - bgR, dg = d[pi + 1] - bgG, db = d[pi + 2] - bgB
+      const dist = Math.sqrt(dr * dr + dg * dg + db * db)
+      if (dist >= SOFT) continue
+      d[pi + 3] = dist < HARD ? 0 : (dist - HARD) / (SOFT - HARD) * 255 | 0
+      const x = idx % w, y = idx / w | 0
+      if (x > 0)     stack.push(idx - 1)
+      if (x < w - 1) stack.push(idx + 1)
+      if (y > 0)     stack.push(idx - w)
+      if (y < h - 1) stack.push(idx + w)
+    }
+  } else {
+    // Fundo preto: chroma-key simples por pixel (contornos pretos não podem ser flood-filled).
+    const HARD = 12, SOFT = 28
+    for (let i = 0; i < d.length; i += 4) {
+      const r = d[i], g = d[i + 1], b = d[i + 2]
+      const dist = Math.sqrt(r * r + g * g + b * b)
+      if (dist < HARD) { d[i + 3] = 0; continue }
+      if (dist < SOFT) { d[i + 3] = (dist - HARD) / (SOFT - HARD) * 255 | 0 }
+    }
   }
 
   oc.putImageData(id, 0, 0)
@@ -360,6 +361,8 @@ export function useGameEngine(
   const antScaleRef        = useRef<number>(2.0)
   const playerGroundOffRef = useRef<number>(0)
   const antGroundOffRef    = useRef<number>(0)
+  const playerBgColorRef   = useRef<'black' | 'white'>('black')
+  const antBgColorRef      = useRef<'black' | 'white'>('black')
 
   useEffect(() => {
     const pc = getPlayerSpriteConfig(config.character)
@@ -370,6 +373,8 @@ export function useGameEngine(
     antScaleRef.current       = ac.scale ?? 2.0
     playerGroundOffRef.current = pc.groundOffset ?? 0
     antGroundOffRef.current    = ac.groundOffset ?? 0
+    playerBgColorRef.current   = pc.bgColor ?? 'black'
+    antBgColorRef.current      = ac.bgColor ?? 'black'
     const ps = makeSprite(pc); playerImgRef.current = ps
     const as_ = makeSprite(ac); antImgRef.current   = as_
     return () => {
@@ -904,7 +909,7 @@ export function useGameEngine(
         const aScale = antScaleRef.current
         const aSW = ANT_W * aScale, aSH = ANT_H * aScale
         drawSprite(ctx, antImgRef.current!, antClipRef.current,
-          antX - (aSW - ANT_W) / 2, GROUND_Y - aSH + antGroundOffRef.current, aSW, aSH, _offAnt)
+          antX - (aSW - ANT_W) / 2, GROUND_Y - aSH + antGroundOffRef.current, aSW, aSH, _offAnt, antBgColorRef.current)
       } else {
         drawCharacter(ctx, antX, GROUND_Y - ANT_H, ANT_W, ANT_H, antColors,
           'running', false, config.antagonist === 'monica', config.antagonist === 'capitao')
@@ -938,7 +943,7 @@ export function useGameEngine(
         const ph = playerCurrentH(s)
         const pSW = PLAYER_W * pScale, pSH = ph * pScale
         drawSprite(ctx, playerImgRef.current!, playerClipRef.current,
-          PLAYER_SCREEN_X - (pSW - PLAYER_W) / 2, s.playerY - (pSH - ph) + playerGroundOffRef.current, pSW, pSH, _offPlayer)
+          PLAYER_SCREEN_X - (pSW - PLAYER_W) / 2, s.playerY - (pSH - ph) + playerGroundOffRef.current, pSW, pSH, _offPlayer, playerBgColorRef.current)
       } else {
         const effectiveState = (s.playerState === 'jumping' && slideHoldRef.current) ? 'sliding' : s.playerState
         drawCharacter(ctx, PLAYER_SCREEN_X, s.playerY, PLAYER_W, playerCurrentH(s),

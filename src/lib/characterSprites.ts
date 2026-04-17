@@ -9,6 +9,7 @@ export interface SpriteConfig {
   quadrant?: SpriteQuadrant
   scale?: number
   groundOffset?: number
+  bgColor?: 'black' | 'white'
 }
 
 import cebolinhaUrl from '../../game_sprites/Cebolinha Webm.mp4?url'
@@ -17,10 +18,10 @@ import monicaUrl    from '../../game_sprites/Mônica Webm.mp4?url'
 import capitaoUrl   from '../../game_sprites/Capitao Feio Webm.mp4?url'
 
 const SPRITES: Record<string, SpriteConfig> = {
-  cebolinha: { src: cebolinhaUrl, isVideo: true, scale: 2.2, groundOffset: 20 },
-  cascao:    { src: cascaoUrl,    isVideo: true, scale: 2.2, groundOffset: 20 },
-  monica:    { src: monicaUrl,    isVideo: true, scale: 2.2, groundOffset: 20 },
-  capitao:   { src: capitaoUrl,   isVideo: true, scale: 2.2, groundOffset: 20 },
+  cebolinha: { src: cebolinhaUrl, isVideo: true, scale: 2.2, groundOffset: 20, bgColor: 'black' },
+  cascao:    { src: cascaoUrl,    isVideo: true, scale: 2.2, groundOffset: 20, bgColor: 'black' },
+  monica:    { src: monicaUrl,    isVideo: true, scale: 2.2, groundOffset: 20, bgColor: 'white' },
+  capitao:   { src: capitaoUrl,   isVideo: true, scale: 2.2, groundOffset: 20, bgColor: 'black' },
 }
 
 export function getPlayerSpriteConfig(character: string): SpriteConfig {
