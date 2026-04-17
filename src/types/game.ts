@@ -32,7 +32,11 @@ export interface GameConfig {
   playerSpeed: number
 }
 
-export type ObstacleType = 'lixeira' | 'poca' | 'hidrante' | 'pedra' | 'cavalete' | 'caixa' | 'vestido'
+export type ObstacleType =
+  | 'lixeira' | 'poca' | 'hidrante' | 'pedra'
+  | 'cavalete' | 'caixa' | 'vestido'
+  | 'lixeira_suspensa' | 'caixa_suspensa'
+
 export type ItemType = 'moeda' | 'especial' | 'tempo'
 
 export interface Obstacle {
@@ -44,7 +48,16 @@ export interface Obstacle {
   color: string
   emoji: string
   requiresSlide: boolean
-  passed: boolean   // already cleared by player (for dodge count)
+  suspended: boolean   // floats in air — player must slide under
+  floatY: number       // px from ground to obstacle bottom (0 = grounded)
+  passed: boolean      // already cleared by player (for dodge count)
+}
+
+export interface Platform {
+  id: number
+  x: number
+  y: number      // top of platform (canvas Y)
+  width: number
 }
 
 export interface GameItem {

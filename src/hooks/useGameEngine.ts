@@ -7,13 +7,13 @@ import {
   BOOST_MAX, BOOST_CHARGE, BOOST_PER_ITEM, BOOST_DURATION, BOOST_MULTIPLIER,
   RAIN_SPAWN_INTERVAL, RAIN_SPEED, RAIN_DAMAGE,
   MAX_HEALTH, OBSTACLE_DAMAGE, INVINCIBILITY_TIME,
-  WIN_DISTANCE,
+  WIN_DISTANCE, PLATFORM_H,
   getPlayerSpeed, getAgeTimeBonus, getObstacleFreqMult,
   getObstacles, getItems, calcStars,
   CHARACTER_COLORS, ANT_COLORS,
 } from '../lib/gameConstants'
 import { Audio } from '../lib/audioSystem'
-import { GameConfig, Obstacle, GameItem, Drop, GameResult, DefeatCause, RunStats } from '../types/game'
+import { GameConfig, Obstacle, Platform, GameItem, Drop, GameResult, DefeatCause, RunStats } from '../types/game'
 
 interface EngineState {
   playerY: number
@@ -45,6 +45,9 @@ interface EngineState {
   rainTimer: number
 
   obstacles: Obstacle[]
+  platforms: Platform[]
+  distSinceLastPlatform: number
+  nextPlatformDist: number
   items: GameItem[]
   drops: Drop[]
   floatingTexts: Array<{ x: number; y: number; text: string; life: number; color: string }>
@@ -91,6 +94,9 @@ function makeInitialState(config: GameConfig): EngineState {
     distSinceLastItem: 0,
     rainTimer: 0,
     obstacles: [],
+    platforms: [],
+    distSinceLastPlatform: 0,
+    nextPlatformDist: randBetween(350, 600),
     items: [],
     drops: [],
     floatingTexts: [],
@@ -274,7 +280,22 @@ export function useGameEngine(
       id: s.nextId++, x: CANVAS_W + 20,
       width: t.w, height: t.h,
       type: t.type, color: t.color, emoji: t.emoji,
-      requiresSlide: t.slide, passed: false,
+      requiresSlide: t.slide,
+      suspended: t.suspended,
+      floatY: t.floatY,
+      passed: false,
+    })
+  }
+
+  function spawnPlatform(s: EngineState) {
+    const width = Math.round(randBetween(100, 180))
+    // Max jump height with JUMP_VY=-430, GRAVITY=650: ~142px. Use 90-128px for safety.
+    const heightAbove = Math.round(randBetween(90, 128))
+    s.platforms.push({
+      id: s.nextId++,
+      x: CANVAS_W + 20,
+      y: GROUND_Y - heightAbove,
+      width,
     })
   }
 
@@ -381,8 +402,26 @@ export function useGameEngine(
       if (s.specialEffectTimer <= 0) { s.specialEffect = 'none'; s.specialEffectTimer = 0 }
     }
 
+    // ── Platform support (check before jump so player can jump from platform) ──
+    const pL_ph = PLAYER_SCREEN_X + 4
+    const pR_ph = PLAYER_SCREEN_X + PLAYER_W - 4
+    let isOnPlatform = false
+    if (s.playerState !== 'sliding' && s.playerVY >= 0) {
+      for (const plat of s.platforms) {
+        const pb = s.playerY + PLAYER_H
+        if (pR_ph > plat.x + 4 && pL_ph < plat.x + plat.width - 4 &&
+            pb >= plat.y - 2 && pb <= plat.y + 8) {
+          s.playerY = plat.y - PLAYER_H
+          s.playerVY = 0
+          if (s.playerState === 'jumping') s.playerState = 'running'
+          isOnPlatform = true
+          break
+        }
+      }
+    }
+
     // Jump
-    const onGround = s.playerY + PLAYER_H >= GROUND_Y - 1
+    const onGround = (s.playerY + PLAYER_H >= GROUND_Y - 1) || isOnPlatform
     if (jumpPRef.current && onGround && s.playerState !== 'sliding') {
       s.playerVY = s.specialEffect === 'jumpBoost' ? JUMP_VY * 2 : JUMP_VY
       s.playerState = 'jumping'; Audio.jump()
@@ -401,6 +440,20 @@ export function useGameEngine(
     }
     if (s.playerY < 0) { s.playerY = 0; s.playerVY = 0 }
     if (s.playerState === 'sliding') s.playerY = GROUND_Y - PLAYER_SLIDE_H
+
+    // Platform landing (falling onto platform top)
+    if (s.playerVY > 0 && s.playerState !== 'sliding') {
+      for (const plat of s.platforms) {
+        const pb = s.playerY + PLAYER_H
+        if (pR_ph > plat.x + 4 && pL_ph < plat.x + plat.width - 4 &&
+            pb >= plat.y && pb <= plat.y + 50) {
+          s.playerY = plat.y - PLAYER_H
+          s.playerVY = 0
+          if (s.playerState === 'jumping') s.playerState = 'running'
+          break
+        }
+      }
+    }
 
     // Invincibility countdown
     if (s.isInvincible) {
@@ -453,6 +506,18 @@ export function useGameEngine(
       return it.x > -40 && !it.collected
     })
 
+    // Spawn + move platforms
+    s.distSinceLastPlatform += spd * dt
+    if (s.distSinceLastPlatform >= s.nextPlatformDist) {
+      spawnPlatform(s)
+      s.distSinceLastPlatform = 0
+      s.nextPlatformDist = randBetween(500, 950)
+    }
+    s.platforms = s.platforms.filter(plat => {
+      plat.x -= spd * dt
+      return plat.x + plat.width > -10
+    })
+
     // Rain
     if (useRain) {
       s.rainTimer -= dt
@@ -472,7 +537,8 @@ export function useGameEngine(
       for (const obs of s.obstacles) {
         if (obs.passed) continue
         const oL = obs.x + 3, oR = obs.x + obs.width - 3
-        const oT = GROUND_Y - obs.height + 3, oB = GROUND_Y - 2
+        const oT = obs.suspended ? GROUND_Y - obs.floatY - obs.height + 3 : GROUND_Y - obs.height + 3
+        const oB = obs.suspended ? GROUND_Y - obs.floatY - 2               : GROUND_Y - 2
         if (pLeft < oR && pRight > oL && pTop < oB && pBot > oT) {
           s.obstaclesHit++
           s.playerHealth -= OBSTACLE_DAMAGE
@@ -567,9 +633,52 @@ export function useGameEngine(
     ctx.fillStyle = pg; ctx.fillRect(0, 0, CANVAS_W * prog, 6)
     ctx.font = '14px serif'; ctx.textAlign = 'left'; ctx.fillText('🏁', CANVAS_W - 20, 20)
 
+    // Platforms
+    for (const plat of s.platforms) {
+      // Ground shadow
+      ctx.save()
+      ctx.globalAlpha = 0.18
+      ctx.fillStyle = '#1a1a1a'
+      ctx.beginPath()
+      ctx.ellipse(plat.x + plat.width / 2, GROUND_Y + 3, plat.width * 0.45, 7, 0, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.restore()
+      // Body gradient
+      const pg = ctx.createLinearGradient(plat.x, plat.y, plat.x, plat.y + PLATFORM_H)
+      pg.addColorStop(0, '#d97706'); pg.addColorStop(0.35, '#b45309'); pg.addColorStop(1, '#78350f')
+      ctx.fillStyle = pg
+      drawRoundRect(ctx, plat.x, plat.y, plat.width, PLATFORM_H, 4); ctx.fill()
+      ctx.strokeStyle = '#1a1a1a'; ctx.lineWidth = 2; ctx.stroke()
+      // Grass top
+      ctx.fillStyle = '#4ade80'
+      drawRoundRect(ctx, plat.x + 2, plat.y, plat.width - 4, 5, 2); ctx.fill()
+      // Wood grain
+      ctx.strokeStyle = 'rgba(0,0,0,0.18)'; ctx.lineWidth = 1
+      for (let wx = plat.x + 20; wx < plat.x + plat.width - 10; wx += 20) {
+        ctx.beginPath(); ctx.moveTo(wx, plat.y + 5); ctx.lineTo(wx, plat.y + PLATFORM_H - 2); ctx.stroke()
+      }
+    }
+
     // Obstacles
     for (const obs of s.obstacles) {
-      const oy = GROUND_Y - obs.height
+      const oy = obs.suspended ? GROUND_Y - obs.floatY - obs.height : GROUND_Y - obs.height
+      if (obs.suspended) {
+        // Dashed chain to top of visible area
+        ctx.save()
+        ctx.strokeStyle = '#6b7280'; ctx.lineWidth = 2
+        ctx.setLineDash([5, 4])
+        ctx.beginPath()
+        ctx.moveTo(obs.x + obs.width / 2, oy)
+        ctx.lineTo(obs.x + obs.width / 2, 30)
+        ctx.stroke()
+        ctx.setLineDash([])
+        // Ground shadow
+        ctx.globalAlpha = 0.15; ctx.fillStyle = '#1a1a1a'
+        ctx.beginPath()
+        ctx.ellipse(obs.x + obs.width / 2, GROUND_Y, obs.width * 0.55, 5, 0, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.restore()
+      }
       ctx.fillStyle = obs.color
       drawRoundRect(ctx, obs.x, oy, obs.width, obs.height, 6); ctx.fill()
       ctx.strokeStyle = '#1a1a1a'; ctx.lineWidth = 2.5; ctx.stroke()

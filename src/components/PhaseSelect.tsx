@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { PHASES, GROUP_META } from '../lib/gameConstants'
-import { loadSave } from '../lib/storageSystem'
+import { loadSave, resetSave } from '../lib/storageSystem'
 import { PhaseProgress } from '../types/game'
 
 interface Props {
@@ -221,6 +221,10 @@ export function PhaseSelect({ onSelect, onBack }: Props) {
         flexShrink: 0,
         padding: '10px',
         textAlign: 'center',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: '12px',
       }}>
         <button
           onClick={onBack}
@@ -236,6 +240,27 @@ export function PhaseSelect({ onSelect, onBack }: Props) {
           }}
         >
           ← Voltar
+        </button>
+        <button
+          onClick={() => {
+            if (window.confirm('Tem certeza? Todo o progresso, estrelas e fases desbloqueadas serão apagados permanentemente!')) {
+              resetSave()
+              setProgress(loadSave().phases)
+              setActiveGroup(1)
+            }
+          }}
+          style={{
+            padding: '9px 20px',
+            fontFamily: 'Fredoka One, sans-serif',
+            fontSize: '13px',
+            color: '#fca5a5',
+            background: 'rgba(239,68,68,0.12)',
+            border: '2px solid rgba(239,68,68,0.35)',
+            borderRadius: '10px',
+            cursor: 'pointer',
+          }}
+        >
+          🗑️ Resetar Progresso
         </button>
       </div>
     </div>

@@ -1,4 +1,4 @@
-import { Character, Antagonist, PhaseConfig, RunStats } from '../types/game'
+import { Character, Antagonist, ObstacleType, PhaseConfig, RunStats } from '../types/game'
 
 // ── Canvas ─────────────────────────────────────────────────────────────────
 export const CANVAS_W = 800
@@ -41,6 +41,9 @@ export const INVINCIBILITY_TIME = 1.5 // seconds of invincibility after hit
 
 // ── Goal ───────────────────────────────────────────────────────────────────
 export const WIN_DISTANCE = 5000
+
+// ── Platforms ───────────────────────────────────────────────────────────────
+export const PLATFORM_H = 16          // visual height of a platform tile
 
 // ── 50 Phases ──────────────────────────────────────────────────────────────
 // Group 1: Iniciante (1-10)  → age 4-5, very easy
@@ -151,18 +154,32 @@ export function getObstacleFreqMult(age: number): number {
 }
 
 // ── Obstacle / Item templates ───────────────────────────────────────────────
-export const CEBOLINHA_OBSTACLES = [
-  { type: 'cavalete' as const, w: 50, h: 60, color: '#f97316', emoji: '🚧', slide: false },
-  { type: 'caixa'    as const, w: 52, h: 40, color: '#92400e', emoji: '📦', slide: true  },
-  { type: 'vestido'  as const, w: 28, h: 75, color: '#be185d', emoji: '👗', slide: false },
-  { type: 'pedra'    as const, w: 42, h: 36, color: '#6b7280', emoji: '🪨', slide: false },
+interface ObstacleTpl {
+  type: ObstacleType; w: number; h: number; color: string; emoji: string
+  slide: boolean; suspended: boolean; floatY: number
+}
+
+// floatY = gap from ground to obstacle bottom (0 = grounded, >0 = suspended)
+// Suspended physics: standing player (top ~314) collides; sliding player (top ~358) passes under
+// Required: 30 <= floatY <= 73 (verified against GROUND_Y=390, PLAYER_H=82, PLAYER_SLIDE_H=38)
+export const CEBOLINHA_OBSTACLES: ObstacleTpl[] = [
+  { type: 'cavalete',       w: 50, h: 60, color: '#f97316', emoji: '🚧', slide: false, suspended: false, floatY: 0 },
+  { type: 'caixa',          w: 52, h: 42, color: '#92400e', emoji: '📦', slide: false, suspended: false, floatY: 0 },
+  { type: 'lixeira',        w: 38, h: 62, color: '#374151', emoji: '🗑️', slide: false, suspended: false, floatY: 0 },
+  { type: 'vestido',        w: 28, h: 75, color: '#be185d', emoji: '👗', slide: false, suspended: false, floatY: 0 },
+  { type: 'pedra',          w: 42, h: 36, color: '#6b7280', emoji: '🪨', slide: false, suspended: false, floatY: 0 },
+  { type: 'caixa_suspensa', w: 56, h: 50, color: '#92400e', emoji: '📦', slide: true,  suspended: true,  floatY: 46 },
+  { type: 'lixeira_suspensa', w: 42, h: 52, color: '#374151', emoji: '🗑️', slide: true, suspended: true, floatY: 42 },
 ]
 
-export const CASCAO_OBSTACLES = [
-  { type: 'lixeira'  as const, w: 38, h: 62, color: '#374151', emoji: '🗑️', slide: false },
-  { type: 'poca'     as const, w: 64, h: 14, color: '#3b82f6', emoji: '💧', slide: true  },
-  { type: 'hidrante' as const, w: 30, h: 72, color: '#dc2626', emoji: '🚒', slide: false },
-  { type: 'pedra'    as const, w: 42, h: 36, color: '#6b7280', emoji: '🪨', slide: false },
+export const CASCAO_OBSTACLES: ObstacleTpl[] = [
+  { type: 'lixeira',        w: 38, h: 62, color: '#374151', emoji: '🗑️', slide: false, suspended: false, floatY: 0 },
+  { type: 'caixa',          w: 52, h: 42, color: '#92400e', emoji: '📦', slide: false, suspended: false, floatY: 0 },
+  { type: 'poca',           w: 64, h: 14, color: '#3b82f6', emoji: '💧', slide: true,  suspended: false, floatY: 0 },
+  { type: 'hidrante',       w: 30, h: 72, color: '#dc2626', emoji: '🚒', slide: false, suspended: false, floatY: 0 },
+  { type: 'pedra',          w: 42, h: 36, color: '#6b7280', emoji: '🪨', slide: false, suspended: false, floatY: 0 },
+  { type: 'caixa_suspensa', w: 56, h: 50, color: '#92400e', emoji: '📦', slide: true,  suspended: true,  floatY: 46 },
+  { type: 'lixeira_suspensa', w: 42, h: 52, color: '#374151', emoji: '🗑️', slide: true, suspended: true, floatY: 42 },
 ]
 
 export const CEBOLINHA_ITEMS = [
