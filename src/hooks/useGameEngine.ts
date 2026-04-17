@@ -427,9 +427,14 @@ export function useGameEngine(
   function spawnItem(s: EngineState) {
     const t = itemTpls[Math.floor(Math.random() * itemTpls.length)]
     if (t.type === 'moeda') s.totalMoedasSpawned++
+    // Bimodal Y: evita zona das plataformas [300–348].
+    // Baixo → coletável correndo; alto → requer pulo.
+    const y = Math.random() < 0.5
+      ? GROUND_Y - randBetween(20, 52)   // baixo: y 338–370 (chão)
+      : GROUND_Y - randBetween(140, 210) // alto:  y 180–250 (pulo)
     s.items.push({
       id: s.nextId++, x: CANVAS_W + 20,
-      y: GROUND_Y - randBetween(70, 160),
+      y,
       type: t.type, points: t.points,
       color: t.color, emoji: t.emoji,
       timeBonus: t.timeBonus, collected: false,
