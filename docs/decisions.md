@@ -147,6 +147,14 @@
 - Vercel: https://fugas-da-turma.vercel.app
 - Project ID: `prj_oRHLVpnGBiIXnZJXZi4FugjsHP2T`
 
+## ADR-020 — Atualização de vídeos Cascão e Cebolinha (2026-04-19)
+**Data:** 2026-04-19
+**Decisão:** Substituir os arquivos de vídeo `Cascão Webm.mp4`, `Cascão.mp4`, `Cebolinha Webm.mp4` e `Cebolinha.mp4` por versões atualizadas fornecidas pelo Senhor Stark. Removido `Untitled Project.mp4` (obsoleto).
+**Motivo:** Melhoria de qualidade visual dos sprites animados. Sem mudança de nomes de arquivo — zero alteração de código necessária.
+**Consequência:** Deploy automático Vercel via push no branch `master`.
+
+---
+
 ## ADR-011 — Carrossel MainMenu com requestAnimationFrame
 **Data:** 2026-04-16
 **Decisão:** Carrossel de imagens implementado via `requestAnimationFrame` + estado de offset, não CSS animation.

@@ -34,7 +34,7 @@ Crianças de 4 a 10 anos, com 5 faixas de dificuldade adaptadas por idade.
 
 ### Sprites animados (v3 — 2026-04-17)
 - Personagens e antagonistas renderizados via vídeos MP4 animados (HTMLVideoElement no Canvas)
-- Remoção de fundo via chroma-key com amostragem automática dos cantos do frame
+- Remoção de fundo via flood-fill chroma-key a partir das bordas (HARD=8, SOFT=22) — preserva cores escuras internas do personagem
 - Vídeos: `Cebolinha Webm.mp4`, `Cascão Webm.mp4`, `Mônica Webm.mp4`, `Capitao Feio Webm.mp4`
 
 ### Mecânicas de plataforma (v3 — 2026-04-17)

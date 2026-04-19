@@ -21,7 +21,7 @@
 - Imagens dos personagens em `/images/` (servidas por `publicDir: 'images'` no Vite)
 - Sprites animados em `/game_sprites/` — vídeos MP4 importados via `?url` do Vite
 - Personagens renderizados via `HTMLVideoElement` + `ctx.drawImage()` no Canvas
-- Chroma-key por amostragem de cantos (remove fundo branco/preto automaticamente)
+- Chroma-key flood-fill a partir das bordas (HARD=8, SOFT=22) — remove fundo preto border-connected, preserva cores escuras internas
 
 ## Deploy
 
