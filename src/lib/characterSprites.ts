@@ -19,8 +19,8 @@ import capitaoUrl   from '../../game_sprites/Capitao Feio Webm.mp4?url'
 
 const SPRITES: Record<string, SpriteConfig> = {
   cebolinha: { src: cebolinhaUrl, isVideo: true, scale: 2.2, groundOffset: 20, bgColor: 'white' },
-  cascao:    { src: cascaoUrl,    isVideo: true, scale: 2.2, groundOffset: 20, bgColor: 'white' },
-  monica:    { src: monicaUrl,    isVideo: true, scale: 2.2, groundOffset: 20, bgColor: 'white' },
+  cascao:    { src: cascaoUrl,    isVideo: true, scale: 2.2, groundOffset: 20, bgColor: 'black' },
+  monica:    { src: monicaUrl,    isVideo: true, scale: 2.2, groundOffset: 20, bgColor: 'black' },
   capitao:   { src: capitaoUrl,   isVideo: true, scale: 2.2, groundOffset: 20, bgColor: 'black' },
 }
 

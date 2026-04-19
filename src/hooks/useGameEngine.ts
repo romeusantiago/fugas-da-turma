@@ -169,8 +169,9 @@ function drawSprite(
 
   // Flood-fill chroma-key a partir das bordas — remove apenas pixels de fundo
   // conectados à borda. Pixels interiores com mesma cor ficam preservados.
-  const HARD = 8, SOFT = 22
   const [tr, tg, tb] = bgColor === 'white' ? [255, 255, 255] : [0, 0, 0]
+  const HARD = bgColor === 'white' ? 20 : 8
+  const SOFT = bgColor === 'white' ? 50 : 22
   const visited = new Uint8Array(w * h)
   const stack: number[] = []
   for (let x = 0; x < w; x++) { stack.push(x); stack.push((h - 1) * w + x) }
