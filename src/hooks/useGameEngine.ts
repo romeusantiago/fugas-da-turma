@@ -169,9 +169,8 @@ function drawSprite(
 
   // Flood-fill chroma-key a partir das bordas — remove apenas pixels de fundo
   // conectados à borda. Pixels interiores com mesma cor ficam preservados.
-  // Todos os sprites têm fundo preto sólido; bgColor reservado para expansão futura.
-  void bgColor
   const HARD = 8, SOFT = 22
+  const [tr, tg, tb] = bgColor === 'white' ? [255, 255, 255] : [0, 0, 0]
   const visited = new Uint8Array(w * h)
   const stack: number[] = []
   for (let x = 0; x < w; x++) { stack.push(x); stack.push((h - 1) * w + x) }
@@ -182,7 +181,8 @@ function drawSprite(
     visited[idx] = 1
     const pi = idx * 4
     const r = d[pi], g = d[pi + 1], b = d[pi + 2]
-    const dist = Math.sqrt(r * r + g * g + b * b)
+    const dr = r - tr, dg = g - tg, db = b - tb
+    const dist = Math.sqrt(dr * dr + dg * dg + db * db)
     if (dist >= SOFT) continue
     d[pi + 3] = dist < HARD ? 0 : (dist - HARD) / (SOFT - HARD) * 255 | 0
     const x = idx % w, y = idx / w | 0
