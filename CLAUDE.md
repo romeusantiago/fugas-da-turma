@@ -79,13 +79,25 @@ Coletar item especial enquanto efeito ativo soma +6s ao timer residual (cap 30s)
 ### Sprites animados via HTMLVideoElement + flood-fill chroma-key
 `game_sprites/` contém vídeos MP4 (fundo preto sólido). `characterSprites.ts` mapeia personagens via `?url` import. O engine cria `HTMLVideoElement` (muted, loop, autoplay) e desenha via `ctx.drawImage()` em canvas offscreen (`_offPlayer`, `_offAnt`).
 
-**Chroma-key: flood-fill a partir das bordas** com HARD=8, SOFT=22 (dist euclidiana do preto):
-- Pixels pretos *border-connected* → transparentes
-- Pixels interiores (mesmo escuros) → preservados (não são border-connected)
+**Chroma-key: flood-fill a partir das bordas** com thresholds adaptáveis por `bgColor`:
+
+- `bgColor: 'black'` → target (0,0,0), HARD=8, SOFT=22
+- `bgColor: 'white'` → target (255,255,255), HARD=20, SOFT=50
+- Pixels de fundo *border-connected* → transparentes; pixels interiores → preservados
 - **NÃO usar chroma-key simples por pixel** — remove cores escuras do personagem (cabelo, sombras)
 - **NÃO usar detecção automática de fundo por cantos** — impreciso quando personagem ocupa o canto
+- **Ao trocar vídeo de um personagem, verificar e atualizar `bgColor` em `characterSprites.ts`**
 
-`SpriteConfig` tem `bgColor?: 'black' | 'white'` — todos atualmente `'black'`. Reservado para futura expansão.
+`SpriteConfig` tem `bgColor?: 'black' | 'white'` — Cebolinha é `'white'`; demais são `'black'`.
+
+**Scale e groundOffset atuais (2026-04-19):**
+
+| Personagem | scale | groundOffset |
+| --- | --- | --- |
+| Cebolinha | 2.42 | 20 |
+| Cascão | 2.2 | 20 |
+| Mônica | 2.2 | 20 |
+| Capitão Feio | 2.2 | 20 |
 
 ### Hold-to-slide + bloqueio overhead
 `slideHoldRef` rastreado por keydown/keyup. Slide fica ativo enquanto tecla pressionada. Timer só decrementa quando solta. Ao expirar, verifica se há obstáculo suspenso ou plataforma overhead antes de levantar.

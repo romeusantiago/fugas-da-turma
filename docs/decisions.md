@@ -94,14 +94,25 @@
 **Consequência:** `SpriteConfig` agora tem `isVideo?: boolean` e `bgColor?: 'black' | 'white'`. Cleanup no `useEffect` pausa e libera vídeos ao trocar personagem.
 
 ## ADR-017 — Flood-fill chroma-key para remoção de fundo dos sprites
-**Data:** 2026-04-17
-**Decisão:** Usar flood-fill a partir das bordas do canvas offscreen em vez de chroma-key por pixel simples.
-**Problema anterior:** Chroma-key simples removia TODOS os pixels dentro do threshold — incluindo contornos e cores escuras do personagem (cabelo da Mônica, sombras). Amostragem de cantos era imprecisa (pixels de personagem nos cantos → background detectado errado).
-**Solução:** Flood-fill a partir de todas as bordas (linha superior/inferior + colunas esq/dir) com HARD=8, SOFT=22 (distância euclidiana do preto).
-- Pixels de fundo preto border-connected → transparentes
-- Pixels interiores (mesmo que escuros) → NÃO são border-connected → preservados
-- Contornos externos → removidos (adjacentes ao fundo), contornos internos → preservados
-**Consequência:** Personagens aparecem com cores corretas mesmo tendo cabelos escuros ou detalhes próximos ao preto.
+**Data:** 2026-04-17 (atualizado 2026-04-19)
+**Decisão:** Usar flood-fill a partir das bordas do canvas offscreen com thresholds adaptáveis por `bgColor`.
+**Problema anterior:** Chroma-key simples removia TODOS os pixels dentro do threshold — incluindo contornos e cores escuras do personagem (cabelo da Mônica, sombras). Amostragem de cantos era imprecisa.
+**Solução atual:** Flood-fill a partir de todas as bordas com distância euclidiana ao target color definido por `bgColor`.
+
+- `bgColor: 'black'` → target (0,0,0), HARD=8, SOFT=22
+- `bgColor: 'white'` → target (255,255,255), HARD=20, SOFT=50 (threshold maior para artefatos MP4)
+- Pixels de fundo border-connected → transparentes; pixels interiores → preservados
+
+**Mapeamento atual de sprites:**
+
+| Sprite | bgColor | Motivo |
+| --- | --- | --- |
+| Cebolinha | white | Novo vídeo (2026-04-19) tem fundo branco |
+| Cascão | black | Vídeo tem fundo preto sólido |
+| Mônica | black | Vídeo tem fundo preto sólido |
+| Capitão Feio | black | Vídeo tem fundo preto sólido |
+
+**Consequência:** `bgColor` em `SpriteConfig` é funcional — não mais reservado. Alterar `bgColor` ao trocar vídeos.
 
 ## ADR-018 — Mecânicas de input fluidas (air-crouch, jump-from-slide, slide-buffer)
 **Data:** 2026-04-17
